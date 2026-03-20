@@ -1,0 +1,64 @@
+security:
+    # https://symfony.com/doc/current/security.html#registering-the-user-hashing-passwords
+    password_hashers:
+        Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
+
+    # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
+    providers:
+        # Provider lié à l'entité User (on utilise l'email pour se connecter)
+        app_user_provider:
+            entity:
+                class: App\Entity\User
+                property: email
+
+    firewalls:
+        dev:
+            # Ensure dev tools and static assets are always allowed
+            pattern: ^/(_profiler|_wdt|assets|build)/
+            security: false
+        main:
+            lazy: true
+            provider: app_user_provider
+            
+            # API REST => Pas de session (stateless)
+            stateless: true
+
+            # On active le login via JSON (pour récupérer le token)
+            json_login:
+                check_path: api_login    # Route où POSTer le JSON (doit correspondre à SecurityController)
+                username_path: email     # Clé attendue dans le payload JSON {"email": "...", "password": "..."}
+                password_path: password
+            
+            # On active la vérification du check du Bearer / Token
+            access_token:
+                token_handler: App\Security\AccessTokenHandler
+            custom_authenticator: App\Security\AdminAuthenticator
+            logout:
+                path: app_logout
+                # where to redirect after logout
+                # target: app_any_route
+
+            remember_me:
+                secret:   '%kernel.secret%'
+                lifetime: 604800 
+                path:     /
+                always_remember_me: true 
+
+    access_control:
+        # Autoriser tout le monde à s'inscrire ou se loguer
+        - { path: ^/api/register, roles: PUBLIC_ACCESS }
+        - { path: ^/api/login, roles: PUBLIC_ACCESS }
+        # Mais le reste de l'API est protégé (requiert un token valide)
+        - { path: ^/api, roles: ROLE_USER }
+        - { path: ^/admin, roles: ROLE_ADMIN }
+
+when@test:
+    security:
+        password_hashers:
+            # Password hashers are resource-intensive by design to ensure security.
+            # In tests, it's safe to reduce their cost to improve performance.
+            Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface:
+                algorithm: auto
+                cost: 4 # Lowest possible value for bcrypt
+                time_cost: 3 # Lowest possible value for argon
+                memory_cost: 10 # Lowest possible value for argon

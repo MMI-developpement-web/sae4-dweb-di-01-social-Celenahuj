@@ -1,10 +1,53 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { createBrowserRouter, Outlet, RouterProvider, Navigate } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
+import LoginRoute from './routes/login.tsx'
+import SignInRoute from './routes/signin.tsx'
+import FeedRoute from './routes/feed.tsx'
+import CreatePostRoute from './components/CreatePost.tsx'
+
+
+const ProtectedRoute = () => {
+  const token = localStorage.getItem('user_token');
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  return <Outlet />; 
+};
+
+
+const router = createBrowserRouter([
+  {
+    path: '/login',
+    element: <LoginRoute />,
+  },
+  {
+    path: '/signin',
+    element: <SignInRoute />,
+  },
+  {
+    element: <ProtectedRoute />, 
+    children: [
+      {
+        path: '/feed',
+        element: <FeedRoute />,
+      },
+      {
+        path: '/',
+        element: <App />,
+      },
+      {
+        path: '/createpost',
+        element: <CreatePostRoute />,
+      },
+    ]
+  }
+], {basename: import.meta.env.VITE_BASE_PATH });
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <RouterProvider router={router} />
   </StrictMode>,
 )
