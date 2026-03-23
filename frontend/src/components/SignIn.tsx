@@ -2,9 +2,11 @@ import { useState } from "react";
 import AuthCard from "../components/AuthCard";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
+import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 
 export default function SignInRoute() {
+    const navigate = useNavigate();
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -61,6 +63,7 @@ export default function SignInRoute() {
 
             if (response.ok) {
                 alert("Compte créé avec succès ! Tu vas être enregistré dans la base de données.");
+                navigate("/login");
             } else {
                 const errorData = await response.json();
                 alert(`Erreur : ${errorData.error || 'Erreur lors de la création'}`);

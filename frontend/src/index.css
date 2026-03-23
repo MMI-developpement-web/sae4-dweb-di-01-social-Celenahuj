@@ -9,12 +9,14 @@
   --color-text: var(--color-text);
   --color-text-muted: var(--color-text-muted);
   --color-text-accent: var(--color-text-accent);
+  --color-text-title: var(--color-text-title);
   --color-border: var(--color-border);
   --color-action: var(--color-action);
   --color-action-hover: var(--color-action-hover);
   --color-action-text: var(--color-action-text);
   --color-warning: var(--color-warning);
   --color-gradient: var(--color-gradient-brand);
+   --color-brand-lavender: var(--color-brand-lavender);
 
   /* Spacing Tokens (rem) */
   --spacing-mobile-x: 1.875rem;       /* 30px */
@@ -44,7 +46,7 @@
   --color-brand-mint: #83c8d9;
   --color-brand-sun: #ffb53e;
   --color-brand-blush: #ffb8bc;
-  --color-brand-lavender: #d6d4e5;
+  --color-brand-lavender: #cdccd0;
 
   /* Semantic tokens */
   --color-bg: var(--color-black);
@@ -53,6 +55,7 @@
   --color-text: var(--color-black);
   --color-text-muted: var(--color-gray);
   --color-text-accent: var(--color-orange);
+  --color-text-title: var(--color-white);
 
   --color-border: var(--color-gray);
 

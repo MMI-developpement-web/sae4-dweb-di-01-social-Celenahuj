@@ -29,6 +29,7 @@ class SecurityController extends AbstractController
 
         return $this->json([
             'user'  => $user->getUserIdentifier(),
+            'avatar' => $user->getAvatar(), // On renvoie l'avatar dès la connexion
             'roles' => $user->getRoles(), // Ajout des rôles pour le frontend
             'token' => $token, // Token renvoyé EN CLAIR au Front React
         ]);

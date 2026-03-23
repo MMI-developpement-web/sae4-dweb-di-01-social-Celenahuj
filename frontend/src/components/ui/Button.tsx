@@ -18,6 +18,10 @@ const ButtonVariants = cva(
         gradient:"text-action-text w-full bg-[image:var(--color-gradient)]",
         gradientDisabled:"text-action-text w-full bg-[image:var(--color-gradient)] opacity-50",
         small: "text-action-text bg-action text-sm",
+        smallwhite: "text-action-text bg-transparent border border-border-white text-sm",
+        navItem: "bg-transparent text-black hover:bg-gray-100 justify-start gap-4 w-full px-2 py-3",
+        navIcon: "bg-transparent text-white hover:bg-white/10 active:opacity-70 stroke-0.5",
+        avatar: "bg-transparent p-0",
       },
       size: {
         sm: "h-8 px-5 text-sm",
@@ -25,6 +29,7 @@ const ButtonVariants = cva(
         lg: "h-12 px-6 text-lg",
         stat: "h-6",
         noir: "h-8 w-8 p-0 ",
+        nul: "p-0",
       },
       icon: {
         "icon-left": "mr-2",

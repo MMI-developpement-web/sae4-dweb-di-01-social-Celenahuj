@@ -31,9 +31,12 @@ export default function Login() {
                 // Le backend renvoie le token et les rôles en JSON
                 const data = await response.json();
 
-                // On stocke le token et les rôles dans le stockage local du navigateur
+                // On stocke le token, rôles et l'avatar dans le stockage local du navigateur
                 localStorage.setItem("user_token", data.token);
                 localStorage.setItem("user_roles", JSON.stringify(data.roles)); 
+                if (data.avatar) {
+                    localStorage.setItem("user_avatar", data.avatar); // Sauvegarde de l'avatar connecté
+                }
 
                 alert("Connexion réussie !");
                 navigate("/feed");
@@ -42,7 +45,7 @@ export default function Login() {
             console.error("Erreur réseau :", error);
             alert("Erreur de connexion au serveur !");
         }
-    }; // <-- CLOSING handleLogin
+    };
 
     return (
     <main className="min-h-screen flex items-center justify-center px-mobile-x pt-mobile-top pb-mobile-bottom sm:p-6 bg-bg">

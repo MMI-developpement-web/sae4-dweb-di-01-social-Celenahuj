@@ -32,7 +32,7 @@ security:
             # On active la vérification du check du Bearer / Token
             access_token:
                 token_handler: App\Security\AccessTokenHandler
-            custom_authenticator: App\Security\AdminAuthenticator
+            #custom_authenticator: App\Security\AdminAuthenticator
             logout:
                 path: app_logout
                 # where to redirect after logout

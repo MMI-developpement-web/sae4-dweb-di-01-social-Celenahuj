@@ -3,7 +3,7 @@ import { cn } from "../../lib/utils";
 import React from "react";
 
 const tabVariants = cva(
-  "relative pb-3 font-bold transition-all cursor-pointer inline-flex items-center justify-center border-b-2",
+  "relative pb-3 transition-all cursor-pointer inline-flex items-center justify-center border-b-2",
   {
     variants: {
       variant: {

@@ -1,5 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "../../lib/utils";
+import defaultProfil from "../../assets/profil.jpg";
 
 const AvatarVariants = cva(
   "inline-block object-cover",
@@ -10,6 +11,7 @@ const AvatarVariants = cva(
         md: "w-12 h-12",
         lg: "w-16 h-16",
         xl: "w-24 h-24",
+        xxl: "w-full h-full",
       },
       shape: {
         circle: "rounded-full",
@@ -24,28 +26,30 @@ const AvatarVariants = cva(
 );
 
 interface AvatarProps extends VariantProps<typeof AvatarVariants> {
-  src: string;
+  src?: string | null;
   alt?: string;
 }
 
-function checkerAvatar(avatar: string): boolean {
-    const avatarRegex = /^https?:\/\/.+/i;
-    return avatarRegex.test(avatar);
-}
-
 export default function Avatar({ src, alt = "Avatar", size, shape, ...props }: AvatarProps) {
-    if (!src || src === "") {
-        return null;
-    }
+    const getFinalSrc = (avatarValue: string | null | undefined) => {
+        if (!avatarValue) return defaultProfil;
+        
+        if (avatarValue.startsWith("http") || avatarValue.startsWith("data:")) {
+            return avatarValue;
+        }
 
-    if (checkerAvatar(src) === false) {
-        console.error("L'avatar n'est pas valide : " + src);
-        return null;
-    }
+        try {
+            return new URL(`../../assets/${avatarValue}`, import.meta.url).href;
+        } catch (e) {
+            return defaultProfil;
+        }
+    };
+
+    const finalSrc = getFinalSrc(src);
 
     return (
         <img 
-            src={src} 
+            src={finalSrc} 
             alt={alt} 
             className={cn(AvatarVariants({ size, shape }))}
             {...props}

@@ -77,11 +77,30 @@ class PostController extends AbstractController
                 'content' => $post->getContent(),
                 'date' => $post->getDate()->format('c'),
                 'author' => [
-                    'username' => $post->getAuthor()->getUsername(), 
+                    'username' => $post->getAuthor()->getUsername(),
+                    'avatar' => $post->getAuthor()->getAvatar(), // On renvoie l'avatar de l'auteur du tweet
                 ]
             ];
         }
-
         return $this->json($data);
     }
-}
+
+    #[Route('/api/profil', name: 'api_profil', methods: ['GET'])]
+    public function getProfile(): JsonResponse
+    {
+        $user = $this->getUser(); 
+
+        if (!$user) {
+            return $this->json(['error' => 'Veuillez vous connecter'], 401);
+        }
+
+        // On renvoie les infos que React attend pour le profil
+        return $this->json([
+            'name' => $user->getUsername(),
+            'avatar' => $user->getAvatar(),
+            'content' => $user->getContent(), // Vérifie que c'est bien 'content' dans ton User.php
+            'lieu' => $user->getLieu(),
+            'lien' => $user->getLien(),
+        ]);
+    }
+ }

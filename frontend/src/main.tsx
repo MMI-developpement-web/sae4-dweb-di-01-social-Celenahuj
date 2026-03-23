@@ -7,6 +7,8 @@ import LoginRoute from './routes/login.tsx'
 import SignInRoute from './routes/signin.tsx'
 import FeedRoute from './routes/feed.tsx'
 import CreatePostRoute from './components/CreatePost.tsx'
+import SidebarRoute from './routes/sidebar.tsx'
+import ProfileRoute from './routes/profil.tsx'
 
 
 const ProtectedRoute = () => {
@@ -41,6 +43,14 @@ const router = createBrowserRouter([
       {
         path: '/createpost',
         element: <CreatePostRoute />,
+      },
+      {
+        path: '/sidebar',
+        element: <SidebarRoute />,
+      },
+      {
+        path: '/profil',
+        element: <ProfileRoute />,
       },
     ]
   }
