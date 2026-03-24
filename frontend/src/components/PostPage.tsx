@@ -1,5 +1,5 @@
 import Button from "./ui/Button";
-import { MessageCircle } from 'lucide-react';
+import { Home, MessageCircle, Plus } from 'lucide-react';
 import { useState, useEffect } from "react";
 import { Heart } from 'lucide-react';
 import { Repeat2 } from 'lucide-react';
@@ -9,6 +9,8 @@ import { Ellipsis, Send } from "lucide-react";
 import Profil from "./ui/Profil";
 import Avatar from "./ui/Avatar";
 import TabGroup from "./TabGroup";
+import BarNav from "./BarNav";
+import { useNavigate } from "react-router-dom";
 
 
 export default function PostRoute() {
@@ -17,6 +19,7 @@ export default function PostRoute() {
     const [page, setPage] = useState(1); 
     const [loading, setLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
+    const navigate = useNavigate();
 
     // 2. Fonction toute simple : "S'il te plait, donne moi la suite des tweets"
     const loadMore = () => {
@@ -143,6 +146,14 @@ export default function PostRoute() {
                 {loading && <p className="text-text-muted">Chargement en cours...</p>}
                 {!hasMore && posts.length > 0 && <p className="text-text-muted text-sm">Vous avez lu tous les tweets !</p>}
             </div>
+            <BarNav variant="dark" >
+                <Button variant="navIcon" size="md" onClick={() => navigate("/feed")}>
+                    <Home size={26} />
+                </Button>
+                <Button variant="navIcon" size="md" onClick={() => navigate("/createpost")}>
+                    <Plus size={32} />
+                </Button>
+            </BarNav>
         </main>
     );
 }

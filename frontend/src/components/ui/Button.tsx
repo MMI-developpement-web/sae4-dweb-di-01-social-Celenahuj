@@ -18,6 +18,7 @@ const ButtonVariants = cva(
         gradient:"text-action-text w-full bg-[image:var(--color-gradient)]",
         gradientDisabled:"text-action-text w-full bg-[image:var(--color-gradient)] opacity-50",
         small: "text-action-text bg-action text-sm",
+        navIcon: "bg-transparent text-white hover:bg-white/10 active:opacity-70 stroke-0.5",
       },
       size: {
         sm: "h-8 px-5 text-sm",

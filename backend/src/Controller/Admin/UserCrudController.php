@@ -8,7 +8,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextEditorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\EmailField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\ArrayField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 
 class UserCrudController extends AbstractCrudController
 {
@@ -26,8 +26,14 @@ class UserCrudController extends AbstractCrudController
             
             EmailField::new('email', 'Adresse Email'),
             
-            // On affiche les rôles (ex: ROLE_ADMIN, ROLE_USER)
-            ArrayField::new('roles', 'Rôles'),
+           ChoiceField::new('roles', 'Rôles')
+                ->setChoices([
+                    'Utilisateur' => 'ROLE_USER',
+                    'Administrateur' => 'ROLE_ADMIN',
+                ])
+                ->allowMultipleChoices() // Très important car roles est un array
+                ->renderExpanded()       // Optionnel : affiche des cases à cocher au lieu d'un menu déroulant
+                ->renderAsBadges(),
 
             TextField::new('lieu', 'Localisation'),
 

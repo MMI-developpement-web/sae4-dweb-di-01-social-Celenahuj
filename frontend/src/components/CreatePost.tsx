@@ -4,12 +4,16 @@ import Header from "./Header";
 import Profil from "./ui/Profil";
 import Avatar from "./ui/Avatar";
 import Textarea from "./ui/Texte";
+import Message from "./Message"; // Assurez-vous que ce composant existe et est bien importé.
+import { CircleCheck, TriangleAlert } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function CreatePostRoute() {
     const navigate = useNavigate();
     const [texteDuTweet, setTexteDuTweet] = useState("");
     const [enCoursDenvoi, setEnCoursDenvoi] = useState(false);
+    
+    const [feedback, setFeedback] = useState<{type: 'success' | 'error', text: string} | null>(null);
 
     // Les règles de gestion
     const LIMITE_CARACTERES = 280;
@@ -24,6 +28,7 @@ export default function CreatePostRoute() {
         if (boutonDesactive) return;
 
         setEnCoursDenvoi(true);
+        setFeedback(null); // On efface l'ancien message s'il y en a un
         
         try {
             const reponse = await fetch(`${import.meta.env.VITE_API_URL}/posts`, {
@@ -36,27 +41,43 @@ export default function CreatePostRoute() {
             });
 
             if (reponse.ok) {
-                // ALERTE DE SUCCÈS
-                alert("Bravo, votre message est publié !");
-                
+                // MESSAGE DE SUCCÈS VIA LE STATE
+                setFeedback({ type: 'success', text: "Bravo, votre message est publié !" });
                 setTexteDuTweet(""); 
-                navigate("/feed"); // Redirection après le "OK" de l'alerte
+                
+                // On attend 2.5 secondes pour que l'utilisateur lise le message, puis on redirige
+                setTimeout(() => navigate("/feed"), 2500);
             } else {
                 const donneesErreur = await reponse.json();
-                // ALERTE D'ERREUR SERVEUR
-                alert(donneesErreur.error || "Le serveur a refusé le message.");
+                // MESSAGE D'ERREUR SERVEUR VIA LE STATE
+                setFeedback({ type: 'error', text: donneesErreur.error || "Le serveur a refusé le message." });
             }
         } catch (erreurReseau) {
-            // ALERTE D'ERREUR RÉSEAU
+            // MESSAGE D'ERREUR RÉSEAU VIA LE STATE
             console.error("Erreur réseau :", erreurReseau);
-            alert("Erreur : Impossible de joindre le serveur. Vérifiez votre connexion.");
+            setFeedback({ type: 'error', text: "Erreur : Impossible de joindre le serveur. Vérifiez votre connexion." });
         } finally {
             setEnCoursDenvoi(false);
         }
     };
 
     return (
-        <main className="px-mobile-x pt-mobile-top pb-mobile-bottom sm:p-6 min-h-screen w-full text-text">
+        <main className="px-mobile-x pt-mobile-top pb-mobile-bottom sm:p-6 min-h-screen w-full text-text relative">
+            
+            {/* Affichage des messages de retour en haut de l'écran */}
+            {feedback && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 w-11/12 max-w-sm">
+                    <Message>
+                        {feedback.type === 'success' ? (
+                            <CircleCheck className="text-green-500" />
+                        ) : (
+                            <TriangleAlert className="stroke-warning" />
+                        )}
+                        <span>{feedback.text}</span>
+                    </Message>
+                </div>
+            )}
+
             <div className="flex flex-col gap-14 max-w-2xl mx-auto w-full">
                 
                 <Header onBack={() => navigate(-1)}>
