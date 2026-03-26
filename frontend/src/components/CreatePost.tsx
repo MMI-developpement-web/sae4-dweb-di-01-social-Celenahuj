@@ -4,12 +4,15 @@ import Header from "./Header";
 import Profil from "./ui/Profil";
 import Avatar from "./ui/Avatar";
 import Textarea from "./ui/Texte";
+import Message from "./Message";
+import { CircleCheck, TriangleAlert } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function CreatePostRoute() {
     const navigate = useNavigate();
     const [texteDuTweet, setTexteDuTweet] = useState("");
     const [enCoursDenvoi, setEnCoursDenvoi] = useState(false);
+    const [feedback, setFeedback] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
     // Les règles de gestion
     const LIMITE_CARACTERES = 280;
@@ -21,10 +24,11 @@ export default function CreatePostRoute() {
      * Fonction pour envoyer les données à Symfony
      */
     const envoyerLeTweet = async () => {
+        setFeedback(null);
         if (boutonDesactive) return;
 
         setEnCoursDenvoi(true);
-        
+
         try {
             const reponse = await fetch(`${import.meta.env.VITE_API_URL}/posts`, {
                 method: 'POST',
@@ -37,32 +41,50 @@ export default function CreatePostRoute() {
 
             if (reponse.ok) {
                 // ALERTE DE SUCCÈS
-                alert("Bravo, votre message est publié !");
-                
-                setTexteDuTweet(""); 
-                navigate("/feed"); // Redirection après le "OK" de l'alerte
+                setFeedback({ type: 'success', text: "Bravo, votre message est publié ! Redirection..." });
+
+                setTexteDuTweet("");
+                setTimeout(() => navigate("/feed"), 3000);
             } else {
                 const donneesErreur = await reponse.json();
                 // ALERTE D'ERREUR SERVEUR
-                alert(donneesErreur.error || "Le serveur a refusé le message.");
+                setFeedback({ type: 'error', text: donneesErreur.error || "Le serveur a refusé le message." });
+                setTimeout(() => {
+                    setFeedback(null);
+                }, 3000);
             }
         } catch (erreurReseau) {
             // ALERTE D'ERREUR RÉSEAU
             console.error("Erreur réseau :", erreurReseau);
-            alert("Erreur : Impossible de joindre le serveur. Vérifiez votre connexion.");
+            setFeedback({ type: 'error', text: "Erreur : Impossible de joindre le serveur. Vérifiez votre connexion." });
         } finally {
             setEnCoursDenvoi(false);
         }
     };
 
     return (
-        <main className="px-mobile-x pt-mobile-top pb-mobile-bottom sm:p-6 min-h-screen w-full text-text">
+        <main className="px-mobile-x pt-mobile-top pb-mobile-bottom sm:p-6 min-h-screen w-full text-text relative">
+
+            {/* Affichage des messages de retour en haut de l'écran */}
+            {feedback && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 w-11/12 max-w-sm">
+                    <Message>
+                        {feedback.type === 'success' ? (
+                            <CircleCheck className="text-green-500" />
+                        ) : (
+                            <TriangleAlert className="stroke-warning" />
+                        )}
+                        <span>{feedback.text}</span>
+                    </Message>
+                </div>
+            )}
+
             <div className="flex flex-col gap-14 max-w-2xl mx-auto w-full">
-                
+
                 <Header onBack={() => navigate(-1)}>
-                    <Button 
-                        variant="small" 
-                        size="sm" 
+                    <Button
+                        variant="small"
+                        size="sm"
                         onClick={envoyerLeTweet}
                         disabled={boutonDesactive}
                     >
@@ -70,11 +92,11 @@ export default function CreatePostRoute() {
                     </Button>
                 </Header>
 
-                <Profil className="block"> 
+                <Profil className="block">
                     <div className="flex flex-col gap-2 w-full">
                         <div className="flex items-start gap-4 w-full">
-                            <div className="flex-shrink-0 pt-1"> 
-                                <Avatar src="https://picsum.photos/200/300" size="md" shape="circle" />
+                            <div className="flex-shrink-0 pt-1">
+                                <Avatar src={localStorage.getItem("user_avatar")} size="md" shape="circle" />
                             </div>
                             <Textarea
                                 variant="ghost"
@@ -86,9 +108,8 @@ export default function CreatePostRoute() {
                             />
                         </div>
 
-                        <div className={`text-right text-body-sm ${
-                            limiteDepassee ? "text-warning font-bold" : "text-text-muted"
-                        }`}>
+                        <div className={`text-right text-body-sm ${limiteDepassee ? "text-warning font-bold" : "text-text-muted"
+                            }`}>
                             {texteDuTweet.length} / {LIMITE_CARACTERES}
                         </div>
                     </div>

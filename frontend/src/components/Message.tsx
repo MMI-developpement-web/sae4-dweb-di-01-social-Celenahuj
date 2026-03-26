@@ -45,9 +45,6 @@ export default function Message({
   return (
     <div className={cn(MessageVariants({ variant, size }))} {...props}>
       <div className="absolute top-2 right-2">
-        <Button variant="icon">
-          <X className="w-6 h-6" />
-        </Button>
       </div>
       <div className="message-content flex flex-col items-center text-center">
         {children}

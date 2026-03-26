@@ -52,6 +52,10 @@ const router = createBrowserRouter([
         path: '/profil',
         element: <ProfileRoute />,
       },
+      {
+        path: '/profil/:id',
+        element: <ProfileRoute />,
+      }
     ]
   }
 ], {basename: import.meta.env.VITE_BASE_PATH });

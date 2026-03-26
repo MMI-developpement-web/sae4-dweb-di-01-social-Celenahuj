@@ -16,27 +16,32 @@ security:
             # Ensure dev tools and static assets are always allowed
             pattern: ^/(_profiler|_wdt|assets|build)/
             security: false
-        main:
-            lazy: true
+
+        api:
+            pattern: ^/api
+            stateless: true
             provider: app_user_provider
             
-            # API REST => Pas de session (stateless)
-            stateless: true
-
             # On active le login via JSON (pour récupérer le token)
             json_login:
-                check_path: api_login    # Route où POSTer le JSON (doit correspondre à SecurityController)
-                username_path: email     # Clé attendue dans le payload JSON {"email": "...", "password": "..."}
+                check_path: api_login    # Route où POSTer le JSON
+                username_path: email     # Clé attendue dans le payload
                 password_path: password
             
             # On active la vérification du check du Bearer / Token
             access_token:
                 token_handler: App\Security\AccessTokenHandler
-            #custom_authenticator: App\Security\AdminAuthenticator
+
+        main:
+            lazy: true
+            provider: app_user_provider
+            stateless: false
+
+            custom_authenticator: App\Security\AdminAuthenticator
+
             logout:
                 path: app_logout
-                # where to redirect after logout
-                # target: app_any_route
+                target: app_login
 
             remember_me:
                 secret:   '%kernel.secret%'

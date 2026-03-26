@@ -2,7 +2,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "../../lib/utils";
 
 const AsideVariants = cva(
-  "fixed left-0 top-0 h-full z-50 bg-white p-8 flex flex-col gap-8 shadow-2xl transition-all duration-300",
+  "fixed left-0 top-0 h-full z-50 bg-white pt-[50px] px-8 pb-8 flex flex-col gap-8 shadow-2xl transition-all duration-300",
   {
     variants: {
       size: {

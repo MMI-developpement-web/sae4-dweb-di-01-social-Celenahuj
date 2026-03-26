@@ -1,11 +1,11 @@
-import Button from "./ui/Button";
-import {  Home, MessageCircle, Plus } from 'lucide-react';
 import { useState, useEffect } from "react";
-import { Heart } from 'lucide-react';
-import { Repeat2 } from 'lucide-react';
+import { useNavigate } from "react-router-dom";
+import { Home, MessageCircle, Plus, Heart, Repeat2, Ellipsis, Send, RefreshCw } from 'lucide-react';
+
+// Tes composants UI
+import Button from "./ui/Button";
 import StatItem from "./ui/StatItem";
 import TweetCard from "./Tweet";
-import { Ellipsis, Send } from "lucide-react";
 import Profil from "./ui/Profil";
 import Avatar from "./ui/Avatar";
 import TabGroup from "./TabGroup";
@@ -13,191 +13,255 @@ import Sidebar from '../components/Sidebar';
 import Logo from "./ui/Logo";
 import Tab from "./ui/Tab";
 import BarNav from "./BarNav";
-import { useNavigate } from "react-router-dom";
+
+// Le nouveau composant Drawer
+import PostDrawer from "./PostDrawer";
 
 export default function PostRoute() {
-    // 1. Nos variables (états)
     const [posts, setPosts] = useState<any[]>([]);
     const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
-    const [current, setCurrent] = useState("posts");
+    const [current, setCurrent] = useState("following");
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [postToDelete, setPostToDelete] = useState<number | null>(null);
+    const [currentUsername, setCurrentUsername] = useState<string | null>(localStorage.getItem("user_username"));
+
     const navigate = useNavigate();
 
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    // 2. Fonction toute simple : "S'il te plait, donne moi la suite des tweets"
-    const loadMore = () => {
-        // On ne charge la suite que si on ne charge pas DÉJÀ et s'il en reste !
-        if (!loading && hasMore) {
-            setPage(prevPage => prevPage + 1);
+    // --- FONCTION DE SUPPRESSION ---
+    const handleDeletePost = async () => {
+        if (!postToDelete) return;
+        try {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/posts/${postToDelete}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('user_token')}` }
+            });
+            if (response.ok) {
+                setPosts(prev => prev.filter(p => p.id !== postToDelete));
+                setPostToDelete(null);
+            }
+        } catch (error) {
+            console.error("Erreur:", error);
         }
     };
 
-    // --- LE SCROLL INFINI SIMPLE ---
-    useEffect(() => {
-        // Cette fonction vérifie si on est arrivé tout en bas de l'écran
-        const handleScroll = () => {
-
-            const positionActuelle = document.documentElement.scrollTop + document.documentElement.clientHeight;
-            const hauteurTotale = document.documentElement.scrollHeight;
-
-            // Si on est à moins de 50 pixels du bas de la page...
-            if (positionActuelle >= hauteurTotale - 50) {
-                loadMore(); // ... on charge la suite !
-            }
-        };
-
-        // On écoute le défilement de la souris
-        window.addEventListener('scroll', handleScroll);
-
-        // On n'oublie pas de nettoyer quand on quitte la page
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, [loading, hasMore]); 
-    useEffect(() => {
+    // --- US 4.2 : FONCTION DE RAFRAÎCHISSEMENT MANUEL ---
+    const handleManualRefresh = async () => {
         setLoading(true);
+        try {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/posts?page=1`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('user_token')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            if (response.ok) {
+                const freshPosts = await response.json();
+                setPosts(freshPosts); // Remplace les posts actuels
+                setPage(1); // Reset la pagination
+                setHasMore(true);
+                window.scrollTo({ top: 0, behavior: 'smooth' }); // Remonte en haut
+            }
+        } catch (error) {
+            console.error("Erreur refresh:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-        fetch(`${import.meta.env.VITE_API_URL}/posts?page=${page}`, {
-            method: 'GET',
+    // --- GESTION DU LIKE (SYNC AVEC SYMFONY) ---
+    const handleLike = async (postId: number) => {
+        // 1. On fait l'appel API
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/posts/${postId}/like`, {
+            method: 'POST',
             headers: {
-                // Preuve qu'on est connecté
                 'Authorization': `Bearer ${localStorage.getItem('user_token')}`,
                 'Content-Type': 'application/json'
             }
+        });
+
+        if (response.ok) {
+            // 2. On récupère les données réelles (likesCount et isLiked) renvoyées par Symfony
+            const data = await response.json();
+
+            // 3. On met à jour l'état React avec les vraies valeurs de la base de données
+            setPosts(prevPosts => prevPosts.map((post) => {
+                if (post.id === postId) {
+                    return {
+                        ...post,
+                        isLiked: data.isLiked,
+                        likesCount: data.likesCount
+                    };
+                }
+                return post;
+            }));
+        }
+    };
+
+    useEffect(() => {
+        if (!currentUsername) {
+            fetch(`${import.meta.env.VITE_API_URL}/profil`, {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('user_token')}` }
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data?.name) {
+                        setCurrentUsername(data.name);
+                        localStorage.setItem("user_username", data.name);
+                        /* AJOUT : On stocke ton ID et ton Avatar pour le reste de l'app */
+                        localStorage.setItem("user_id", data.id);
+                        localStorage.setItem("user_avatar", data.avatar);
+                    }
+                })
+                .catch(console.error);
+        }
+    }, [currentUsername]);
+
+    // --- CHARGEMENT INITIAL & PAGINATION ---
+    useEffect(() => {
+        setLoading(true);
+        fetch(`${import.meta.env.VITE_API_URL}/posts?page=${page}`, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('user_token')}` }
         })
-            .then(response => {
-                if (!response.ok) {
-                    alert("Erreur de connexion. Veuillez vous reconnecter.");
-                    return []; // Si erreur, on renvoie rien
-                }
-                return response.json(); // Sinon on trasnforme le résultat en JSON
-            })
+            .then(res => res.json())
             .then(nouvellesDonnees => {
-                // On met à jour la liste des posts en évitant les doublons
-                setPosts(anciensPosts => {
-                    const tousLesPosts = [...anciensPosts, ...nouvellesDonnees];
-                    // La Map supprime automatiquement les anciens posts si un nouveau a le même ID
-                    const postsUniques = Array.from(new Map(tousLesPosts.map(post => [post.id, post])).values());
-                    return postsUniques;
+                setPosts(anciens => {
+                    const tous = [...anciens, ...nouvellesDonnees];
+                    // Évite les doublons basés sur l'ID
+                    return Array.from(new Map(tous.map(p => [p.id, p])).values());
                 });
-
-                // S'il y a moins de 10 nouveaux posts, ça veut dire qu'on est à la fin
-                if (nouvellesDonnees.length < 10) {
-                    setHasMore(false);
-                }
+                if (nouvellesDonnees.length < 10) setHasMore(false);
                 setLoading(false);
             })
-            .catch(error => {
-                console.error("Erreur serveur :", error);
-                setLoading(false);
-            });
-
+            .catch(() => setLoading(false));
     }, [page]);
+
+    // --- INFINITE SCROLL ---
+    useEffect(() => {
+        const handleScroll = () => {
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100 && !loading && hasMore) {
+                setPage(p => p + 1);
+            }
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [loading, hasMore]);
+
     return (
-        <main className="min-h-screen px-mobile-x pt-mobile-top pb-mobile-bottom sm:p-6 bg-bg flex flex-col items-center gap-8 sm:gap-6 sm:pb-20 w-full">
-            <div className="w-full max-w-xl flex items-center justify-between">
-                <div className="flex-1 flex justify-start">
-                    <div className="w-10 h-10" />
-                </div>
+        <main className="min-h-screen bg-bg flex flex-col items-center w-full pb-mobile-bottom font-inter">
 
-                <div className="flex-shrink-0">
+            {/* HEADER STICKY (Logo, Avatar, Tabs) */}
+            <header className="sticky top-0 z-40 bg-bg/95 backdrop-blur-sm w-full flex flex-col items-center pt-mobile-top px-mobile-x border-b border-border">
+
+                {/* Ligne 1 : Logo & Profil */}
+                <div className="w-full max-w-xl flex items-center justify-between mb-12">
+                    <div className="flex-1" />
                     <Logo size="lg" variant="primary" />
+                    <div className="flex-1 flex justify-end">
+                        <Button variant="avatar" size="nul" onClick={() => setIsSidebarOpen(true)}>
+                            <Avatar src={localStorage.getItem("user_avatar")} size="md" shape="circle" />
+                        </Button>
+                    </div>
                 </div>
 
+                {/* Ligne 2 : Navigation & Refresh */}
+                <div className="w-full max-w-xl flex items-end justify-between">
+                    <TabGroup>
+                        <Tab
+                            isActive={current === "following"}
+                            onClick={() => setCurrent("following")}
+                        >
+                            Following
+                        </Tab>
+                        <Tab
+                            isActive={current === "all"}
+                            onClick={() => setCurrent("all")}
+                        >
+                            For you
+                        </Tab>
+                    </TabGroup>
 
-                <div className="flex-1 flex justify-end">
-                    <Button
-                        variant="avatar" size="nul"
-                        onClick={() => setIsSidebarOpen(true)}
-                    >
-                        <Avatar src={localStorage.getItem("user_avatar")} size="md" shape="circle" />
-                    </Button>
+                    <div className="pb-2">
+                        <Button
+                            variant="navIcon"
+                            onClick={handleManualRefresh}
+                        >
+                            <RefreshCw size={20} />
+                        </Button>
+                    </div>
                 </div>
+            </header>
+
+            <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+
+            {/* LISTE DES TWEETS FILTRÉE */}
+            <div className="flex flex-col gap-card-gap items-center w-full max-w-xl px-mobile-x mt-8">
+                {posts
+                    .filter((post) => {
+                        if (current === "all") return true;
+
+                        return post.author?.isFollowing === true || post.author?.username === currentUsername;
+                    })
+                    // On affiche ensuite les tweets restants
+                    .map((post) => (
+                        <TweetCard key={post.id} variant="primary" size="md">
+                            <div className="flex justify-between items-start w-full">
+                                <Profil className="items-start">
+                                    <Button variant="avatar" size="nul" onClick={() => navigate(`/profil/${post.author.id}`)}>
+                                        <Avatar src={post.author.avatar} size="md" shape="circle" />
+                                    </Button>
+                                    <div className="flex flex-col">
+                                        <p className="text-body-sm font-bold">@{post.author?.username}</p>
+                                        <p className="text-xs text-text-muted">{new Date(post.date).toLocaleDateString()}</p>
+                                    </div>
+                                </Profil>
+                                {post.author?.username === currentUsername && (
+                                    <Button variant="icon" size="stat" onClick={() => setPostToDelete(post.id)}>
+                                        <Ellipsis size={20} className="text-text-muted" />
+                                    </Button>
+                                )}
+                            </div>
+
+                            <p className="text-body-base py-2">{post.content}</p>
+
+                            <div className="flex justify-between w-full mt-2">
+                                <div className="flex gap-4">
+                                    <Button
+                                        variant={post.isLiked ? "like" : "icon"}
+                                        size="stat"
+                                        onClick={() => handleLike(post.id)}
+                                    >
+                                        <Heart size={18} className={post.isLiked ? "fill-current" : ""} />
+                                        <span className="ml-2 text-sm">{post.likesCount || 0}</span>
+                                    </Button>
+                                    <StatItem variant="primary" size="stat"><MessageCircle size={18} /> 5</StatItem>
+                                    <StatItem variant="primary" size="stat"><Repeat2 size={18} /> 2</StatItem>
+                                </div>
+                                <Button variant="icon" size="stat"><Send size={18} /></Button>
+                            </div>
+                        </TweetCard>
+                    ))
+                }
             </div>
 
-            <Sidebar
-                isOpen={isSidebarOpen}
-                onClose={() => setIsSidebarOpen(false)}
+            <PostDrawer
+                isOpen={postToDelete !== null}
+                onClose={() => setPostToDelete(null)}
+                onDelete={handleDeletePost}
             />
 
-            <TabGroup>
-                <Tab
-                    isActive={current === "posts"}
-                    onClick={() => setCurrent("posts")}
-                    size="md"
-                >
-                    Following
-                </Tab>
-
-                <Tab
-                    isActive={current === "likes"}
-                    onClick={() => setCurrent("likes")}
-                >
-                    For you
-                </Tab>
-            </TabGroup>
-            
-            <div className="flex flex-col gap-card-gap items-center w-full max-w-xl">
-                {posts.map((post) => (
-                    <TweetCard key={post.id} variant="primary" size="md">
-                        <Profil className="items-start">
-                            <Avatar src={post.author.avatar} size="md" shape="circle" />
-                            <div className="flex flex-col gap-2 ">
-                                <p className="text-body-sm text-text-muted">@{post.author?.username?.toLowerCase().replace(' ', '')}</p>
-                                <p className="text-body-sm text-text-muted">
-                                    {new Date(post.date).toLocaleDateString()}
-                                </p>
-                            </div>
-
-                        </Profil>
-                        <p className="text-body-base">
-                            {post.content}
-                        </p>
-                        <div className="flex justify-between">
-                            <div >
-                                <StatItem variant="primary" size="stat">
-                                    <Button variant="icon" size="stat">
-                                        <Heart />
-                                    </Button>
-                                    12
-                                </StatItem>
-                                <StatItem variant="primary" size="stat">
-                                    <Button variant="icon" size="stat">
-                                        <MessageCircle />
-                                    </Button>
-                                    12
-                                </StatItem>
-                                <StatItem variant="primary" size="stat">
-                                    <Button variant="icon" size="stat">
-                                        <Repeat2 />
-                                    </Button>
-                                    12
-                                </StatItem>
-                                <Button variant="icon" size="stat">
-                                    <Ellipsis />
-                                </Button>
-                            </div>
-                            <Button variant="icon" size="stat">
-                                <Send />
-                            </Button>
-                        </div>
-
-                    </TweetCard>
-                ))}
+            <div className="h-20 flex items-center">
+                {loading && <p className="text-text-muted italic">Chargement des tweets...</p>}
             </div>
 
-            {/* MESSAGE EN BAS DE PAGE LORS DU SCROLL */}
-            <div className="w-full text-center p-4">
-                {loading && <p className="text-text-muted">Chargement en cours...</p>}
-                {!hasMore && posts.length > 0 && <p className="text-text-muted text-sm">Vous avez lu tous les tweets !</p>}
-            </div>
-
-            <BarNav variant="dark" >
-                <Button variant="navIcon" size="md" onClick={() => navigate("/feed")}>
-                    <Home size={26} />
-                </Button>
-                <Button variant="navIcon" size="md" onClick={() => navigate("/createpost")}>
-                    <Plus size={32} />
-                </Button>
+            {/* BARRE DE NAVIGATION FIXE BAS */}
+            <BarNav variant="dark">
+                <Button variant="navIcon" onClick={() => navigate("/feed")}><Home size={26} /></Button>
+                <Button variant="navIcon" onClick={() => navigate("/createpost")}><Plus size={32} /></Button>
             </BarNav>
         </main>
     );

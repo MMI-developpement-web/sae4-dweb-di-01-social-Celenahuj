@@ -61,11 +61,21 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $lien = null;
 
+    /**
+     * @var Collection<int, Post>
+     */
+    #[ORM\ManyToMany(targetEntity: Post::class, mappedBy: 'likers')]
+    private Collection $likes;
+
+    #[ORM\Column]
+    private ?bool $isBlocked = null;
+
     public function __construct()
     {
         $this->posts = new ArrayCollection();
         $this->following = new ArrayCollection();
         $this->followers = new ArrayCollection();
+        $this->likes = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -274,6 +284,45 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setLien(string $lien): static
     {
         $this->lien = $lien;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Post>
+     */
+    public function getLikes(): Collection
+    {
+        return $this->likes;
+    }
+
+    public function addLike(Post $like): static
+    {
+        if (!$this->likes->contains($like)) {
+            $this->likes->add($like);
+            $like->addLiker($this);
+        }
+
+        return $this;
+    }
+
+    public function removeLike(Post $like): static
+    {
+        if ($this->likes->removeElement($like)) {
+            $like->removeLiker($this);
+        }
+
+        return $this;
+    }
+
+    public function isBlocked(): ?bool
+    {
+        return $this->isBlocked;
+    }
+
+    public function setIsBlocked(bool $isBlocked): static
+    {
+        $this->isBlocked = $isBlocked;
 
         return $this;
     }

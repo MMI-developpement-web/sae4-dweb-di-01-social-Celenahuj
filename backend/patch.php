@@ -1,4 +1,6 @@
 <?php
+$content = <<<'PHP'
+<?php
 
 namespace App\Controller;
 
@@ -17,10 +19,6 @@ class PostController extends AbstractController
         $user = $this->getUser();
         if (!$user) {
             return $this->json(['error' => 'Veuillez vous connecter'], 401);
-        }
-
-        if ($user->isBlocked()) {
-            return $this->json(['error' => 'Votre compte est bloqué, action impossible'], 403);
         }
 
         $data = json_decode($request->getContent(), true);
@@ -162,73 +160,8 @@ class PostController extends AbstractController
 
         return $this->json(['message' => 'Tweet supprimé avec succès']);
     }
-
-    #[Route('/api/posts/{id}/like', name: 'api_posts_like', methods: ['POST'])]
-    public function like(int $id, EntityManagerInterface $em): JsonResponse
-    {
-        $user = $this->getUser();
-        if (!$user) {
-            return $this->json(['error' => 'Veuillez vous connecter'], 401);
-        }
-
-        if ($user->isBlocked()) {
-            return $this->json(['error' => 'Votre compte est bloqué, action impossible'], 403);
-        }
-
-        $post = $em->getRepository(Post::class)->find($id);
-
-        if (!$post) {
-            return $this->json(['error' => 'Tweet non trouvé'], 404);
-        }
-
-        if ($post->getLikers()->contains($user)) {
-            $post->removeLiker($user);
-            $isLiked = false;
-        } else {
-            $post->addLiker($user);
-            $isLiked = true;
-        }
-
-        $em->flush();
-
-        return $this->json([
-            'isLiked' => $isLiked,
-            'likesCount' => $post->getLikers()->count(),
-        ]);
-    }
-
-
-    #[Route('/api/user/{id}/follow', name: 'api_user_follow', methods: ['POST'])]
-    public function follow(int $id, EntityManagerInterface $em): JsonResponse
-    {
-        $user = $this->getUser();
-        if (!$user) {
-            return $this->json(['error' => 'Veuillez vous connecter'], 401);
-        }
-
-        $targetUser = $em->getRepository(\App\Entity\User::class)->find($id);
-
-        if (!$targetUser) {
-            return $this->json(['error' => 'Utilisateur non trouvé'], 404);
-        }
-
-        if ($user === $targetUser) {
-            return $this->json(['error' => 'Vous ne pouvez pas vous suivre vous-même'], 400);
-        }
-
-        if ($user->getFollowing()->contains($targetUser)) {
-            $user->removeFollowing($targetUser);
-            $isFollowing = false;
-        } else {
-            $user->addFollowing($targetUser);
-            $isFollowing = true;
-        }
-
-        $em->flush();
-
-        return $this->json([
-            'isFollowing' => $isFollowing,
-        ]);
-    }
-
 }
+PHP;
+
+file_put_contents('backend/src/Controller/PostController.php', $content);
+echo "Patched\n";

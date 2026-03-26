@@ -22,6 +22,7 @@ const ButtonVariants = cva(
         navItem: "bg-transparent text-black hover:bg-gray-100 justify-start gap-4 w-full px-2 py-3",
         navIcon: "bg-transparent text-white hover:bg-white/10 active:opacity-70 stroke-0.5",
         avatar: "bg-transparent p-0",
+        like: "bg-transparent text-red-500 fill-red-500",
       },
       size: {
         sm: "h-8 px-5 text-sm",
