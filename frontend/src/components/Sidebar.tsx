@@ -38,8 +38,18 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         }, 1500);
     };
 
+    // --- LA CORRECTION EST ICI ---
     const handleProfile = () => {
-        navigate("/profil");
+        const myId = localStorage.getItem("user_id");
+        onClose(); // Ferme le menu aside
+        
+        if (myId && myId !== "undefined" && myId !== "null") {
+            // On navigue vers l'URL précise de TON profil
+            navigate(`/profil/${myId}`);
+        } else {
+            // Fallback au cas où l'ID est perdu
+            navigate("/profil");
+        }
     };
 
     // Si le menu n'est pas ouvert et qu'il n'y a pas de message/modal, on n'affiche rien

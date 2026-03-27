@@ -28,6 +28,7 @@ class SecurityController extends AbstractController
         $token = $tokenService->createAndSaveToken($user);
 
         return $this->json([
+            'id' => $user->getId(),
             'user'  => $user->getUserIdentifier(), 'username' => $user->getUsername(),
             'avatar' => $user->getAvatar(), // On renvoie l'avatar dès la connexion
             'roles' => $user->getRoles(), // Ajout des rôles pour le frontend

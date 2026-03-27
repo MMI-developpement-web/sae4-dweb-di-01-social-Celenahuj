@@ -39,6 +39,7 @@ export default function Login() {
 
                 // On stocke le token, rôles et l'avatar dans le stockage local du navigateur
                 localStorage.setItem("user_token", data.token);
+                localStorage.setItem("user_id", data.id);
                 localStorage.setItem("user_roles", JSON.stringify(data.roles)); 
                 if (data.avatar) {
                     localStorage.setItem("user_avatar", data.avatar);
