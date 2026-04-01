@@ -84,7 +84,7 @@ export default function SignIn() {
             
             {/* Affichage des messages de retour en haut de l'écran */}
             {feedback && (
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 w-11/12 max-w-sm">
+                <div className="fixed top-[50px] left-1/2 -translate-x-1/2 z-[100] w-11/12 max-w-sm">
                     <Message>
                         {feedback.type === 'success' ? (
                             <CircleCheck className="text-green-500" />

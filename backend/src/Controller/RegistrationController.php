@@ -47,6 +47,7 @@ class RegistrationController extends AbstractController
         
         $user->setUsername($data['name']); 
         $user->setEmail($data['email']);
+        $user->setIsBlocked(false);
 
         try {
             // 3. Hasher le mot de passe

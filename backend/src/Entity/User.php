@@ -68,7 +68,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private Collection $likes;
 
     #[ORM\Column]
-    private ?bool $isBlocked = null;
+    private ?bool $isBlocked = false;
+
+    /**
+     * @var Collection<int, Block>
+     */
+    #[ORM\OneToMany(targetEntity: Block::class, mappedBy: 'blocker')]
+    private Collection $blockedUsers;
 
     public function __construct()
     {
@@ -76,6 +82,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->following = new ArrayCollection();
         $this->followers = new ArrayCollection();
         $this->likes = new ArrayCollection();
+        $this->blockedUsers = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -323,6 +330,36 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setIsBlocked(bool $isBlocked): static
     {
         $this->isBlocked = $isBlocked;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Block>
+     */
+    public function getBlockedUsers(): Collection
+    {
+        return $this->blockedUsers;
+    }
+
+    public function addBlockedUser(Block $blockedUser): static
+    {
+        if (!$this->blockedUsers->contains($blockedUser)) {
+            $this->blockedUsers->add($blockedUser);
+            $blockedUser->setBlocker($this);
+        }
+
+        return $this;
+    }
+
+    public function removeBlockedUser(Block $blockedUser): static
+    {
+        if ($this->blockedUsers->removeElement($blockedUser)) {
+            // set the owning side to null (unless already changed)
+            if ($blockedUser->getBlocker() === $this) {
+                $blockedUser->setBlocker(null);
+            }
+        }
 
         return $this;
     }

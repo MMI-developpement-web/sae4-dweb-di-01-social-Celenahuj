@@ -5,13 +5,14 @@ import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import Message from "./Message";
 import { CircleCheck, TriangleAlert } from "lucide-react";
-
+import { useAuth } from "../contexts/AuthContext";
 
 export default function Login() {
     // 1. Déclarer des états pour chaque champ
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const navigate = useNavigate();
+    const { login } = useAuth(); // <--- On importe le context !
 
     // État pour gérer les messages flottants
     const [feedback, setFeedback] = useState<{type: 'success' | 'error', text: string} | null>(null);
@@ -37,15 +38,16 @@ export default function Login() {
                 // Le backend renvoie le token et les rôles en JSON
                 const data = await response.json();
 
-                // On stocke le token, rôles et l'avatar dans le stockage local du navigateur
-                localStorage.setItem("user_token", data.token);
-                localStorage.setItem("user_id", data.id);
-                localStorage.setItem("user_roles", JSON.stringify(data.roles)); 
-                if (data.avatar) {
-                    localStorage.setItem("user_avatar", data.avatar);
-                }
-                if (data.username) {
-                    localStorage.setItem("user_username", data.username); // Sauvegarde de l'avatar connecté
+                // On utilise la fonction de notre Store React pour connecter le membre partout !
+                login(data.token, {
+                    id: data.id,
+                    username: data.username,
+                    avatar: data.avatar || undefined,
+                });
+                
+                // Rôles supplémentaires
+                if (data.roles) {
+                    localStorage.setItem("user_roles", JSON.stringify(data.roles)); 
                 }
 
                 setFeedback({ type: 'success', text: "Connexion réussie ! Redirection..." });
@@ -63,7 +65,7 @@ export default function Login() {
     <main className="min-h-screen flex items-center justify-center px-mobile-x pt-mobile-top pb-mobile-bottom sm:p-6 bg-bg relative">
         {/* Affichage des messages de retour en haut de l'écran */}
         {feedback && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 w-11/12 max-w-sm">
+            <div className="fixed top-[50px] left-1/2 -translate-x-1/2 z-[100] w-11/12 max-w-sm">
                 <Message>
                     {feedback.type === 'success' ? (
                         <CircleCheck className="text-green-500" />

@@ -41,7 +41,7 @@ export default function Header({
     <header className={cn(HeaderVariants({ variant, contentAlign }))} {...props}>
       
       <div className={cn(
-          contentAlign === "center" ? "absolute left-4" : "static"
+          contentAlign === "center" ? " left-4" : "static"
       )}>
         <Button variant="iconNoir" size="noir" onClick={props.onBack}>
           <ChevronLeft size={20} />

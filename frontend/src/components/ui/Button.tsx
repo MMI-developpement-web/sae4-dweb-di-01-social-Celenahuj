@@ -23,6 +23,7 @@ const ButtonVariants = cva(
         navIcon: "bg-transparent text-white hover:bg-white/10 active:opacity-70 stroke-0.5",
         avatar: "bg-transparent p-0",
         like: "bg-transparent text-red-500 fill-red-500",
+        options : "rounded-2xl border-gray-100 shadow-sm",
       },
       size: {
         sm: "h-8 px-5 text-sm",
@@ -31,6 +32,7 @@ const ButtonVariants = cva(
         stat: "h-6",
         noir: "h-8 w-8 p-0 ",
         nul: "p-0",
+        opt:"p-4",
       },
       icon: {
         "icon-left": "mr-2",

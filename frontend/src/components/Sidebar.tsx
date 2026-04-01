@@ -5,6 +5,7 @@ import Button from "./ui/Button";
 import Avatar from "./ui/Avatar";
 import Aside from "./ui/Aside";
 import Message from "./Message";
+import { useAuth } from "../contexts/AuthContext";
 
 interface SidebarProps {
     isOpen: boolean;
@@ -13,6 +14,7 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     const navigate = useNavigate();
+    const { logout, user } = useAuth(); // Utilisation du contexte global
     const [feedback, setFeedback] = useState<{type: 'success' | 'error', text: string} | null>(null);
     const [showConfirmLogout, setShowConfirmLogout] = useState(false);
 
@@ -24,26 +26,24 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     // Fonction pour se déconnecter
     const performLogout = () => {
         setShowConfirmLogout(false);
-        // 1. On vide le jeton de connexion
-        localStorage.removeItem("user_token");
-        localStorage.removeItem("user_username");
 
-        // 2. On prévient l'utilisateur
+        // 1. On prévient l'utilisateur
         setFeedback({ type: 'success', text: "Tu es déconnecté ! Redirection..." });
 
-        // 3. On repart à la page Login
+        // 2. On repart à la page Login via le context
         setTimeout(() => {
-            navigate("/login");
+            onClose(); // Ferme le panel
+            logout(); // Redirige automatiquement
             setFeedback(null);
         }, 1500);
     };
 
     // --- LA CORRECTION EST ICI ---
     const handleProfile = () => {
-        const myId = localStorage.getItem("user_id");
+        const myId = user?.id; // ID récupéré depuis AuthContext au lieu de localStorage
         onClose(); // Ferme le menu aside
         
-        if (myId && myId !== "undefined" && myId !== "null") {
+        if (myId && String(myId) !== "undefined" && String(myId) !== "null") {
             // On navigue vers l'URL précise de TON profil
             navigate(`/profil/${myId}`);
         } else {
@@ -59,7 +59,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         <>
             {/* Messages de retour */}
             {feedback && (
-                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-11/12 max-w-sm">
+                <div className="fixed top-[50px] left-1/2 -translate-x-1/2 z-[100] w-11/12 max-w-sm">
                     <Message>
                         {feedback.type === 'success' ? (
                             <CircleCheck className="text-green-500" />
@@ -92,7 +92,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             )}
             <Aside isOpen={isOpen} onClose={onClose}>
                 {/* Ici on met juste le contenu spécifique au menu */}
-                <Avatar src={localStorage.getItem("user_avatar")} size="xl" />
+                <Avatar src={user?.avatar} size="xl" />
 
                 <div className="flex flex-col gap-2">
                     <Button variant="navItem" onClick={handleProfile}>
@@ -104,6 +104,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                     <p className="text-xs font-bold text-gray-400 uppercase px-2">Your account</p>
                     <Button variant="navItem" onClick={handleLogoutClick}>
                         <LogOut size={20} /> <span>Log out</span>
+                    </Button>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                    <p className="text-xs font-bold text-gray-400 uppercase px-2">Who can see your content</p>
+                    <Button variant="navItem" onClick={() => { navigate("/blocked"); onClose(); }}>
+                        <Ban size={20} /> <span>Blocked</span>
                     </Button>
                 </div>
 

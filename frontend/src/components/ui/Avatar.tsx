@@ -34,8 +34,14 @@ export default function Avatar({ src, alt = "Avatar", size, shape, ...props }: A
     const getFinalSrc = (avatarValue: string | null | undefined) => {
         if (!avatarValue) return defaultProfil;
         
-        if (avatarValue.startsWith("http") || avatarValue.startsWith("data:")) {
+        if (avatarValue.startsWith("http") || avatarValue.startsWith("data:") || avatarValue.startsWith("blob:") || avatarValue.startsWith("/")) {
             return avatarValue;
+        }
+
+        // Si le nom du fichier ressemble à un ID unique généré par uniqid() de PHP (13 caractères)
+        // suivi d'une extension (.jpg, .png, etc.), alors il provient sûrement des uploads
+        if (/^[a-f0-9]{13}\.[a-zA-Z]{3,4}$/i.test(avatarValue)) {
+             return `${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/${avatarValue}`;
         }
 
         try {

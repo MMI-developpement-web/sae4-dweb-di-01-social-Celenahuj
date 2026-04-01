@@ -30,10 +30,28 @@ class Post
     #[ORM\ManyToMany(targetEntity: User::class, inversedBy: 'likes')]
     private Collection $likers;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $media = null;
+
+    #[ORM\ManyToOne(targetEntity: self::class, inversedBy: 'comments')]
+    #[ORM\JoinColumn(onDelete: 'CASCADE')]
+    private ?self $parent = null;
+
+    /**
+     * @var Collection<int, self>
+     */
+    #[ORM\OneToMany(targetEntity: self::class, mappedBy: 'parent', cascade: ['remove'], orphanRemoval: true)]
+    private Collection $comments;
+
+    #[ORM\Column]
+    private ?bool $isCensored = null;
+
     public function __construct()
     {
         $this->date = new \DateTimeImmutable();
         $this->likers = new ArrayCollection();
+        $this->comments = new ArrayCollection();
+        $this->isCensored = false; // Par défaut, un post n'est pas censuré
     }
 
     public function getId(): ?int
@@ -97,6 +115,72 @@ class Post
     public function removeLiker(User $liker): static
     {
         $this->likers->removeElement($liker);
+
+        return $this;
+    }
+
+    public function getMedia(): ?string
+    {
+        return $this->media;
+    }
+
+    public function setMedia(?string $media): static
+    {
+        $this->media = $media;
+
+        return $this;
+    }
+
+    public function getParent(): ?self
+    {
+        return $this->parent;
+    }
+
+    public function setParent(?self $parent): static
+    {
+        $this->parent = $parent;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, self>
+     */
+    public function getComments(): Collection
+    {
+        return $this->comments;
+    }
+
+    public function addComment(self $comment): static
+    {
+        if (!$this->comments->contains($comment)) {
+            $this->comments->add($comment);
+            $comment->setParent($this);
+        }
+
+        return $this;
+    }
+
+    public function removeComment(self $comment): static
+    {
+        if ($this->comments->removeElement($comment)) {
+            // set the owning side to null (unless already changed)
+            if ($comment->getParent() === $this) {
+                $comment->setParent(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function isCensored(): ?bool
+    {
+        return $this->isCensored;
+    }
+
+    public function setIsCensored(bool $isCensored): static
+    {
+        $this->isCensored = $isCensored;
 
         return $this;
     }
