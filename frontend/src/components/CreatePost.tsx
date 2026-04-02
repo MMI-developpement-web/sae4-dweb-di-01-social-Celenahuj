@@ -1,6 +1,20 @@
 import { useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { CircleCheck, TriangleAlert, Image, X } from "lucide-react";
+import { motion } from "framer-motion";
+
+// Configuration de la transition de page
+const pageVariants = {
+    initial: { opacity: 0, x: -20 },
+    animate: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: 20 }
+};
+const pageTransition = { 
+    type: "spring" as const, 
+    stiffness: 100, 
+    damping: 20,
+    mass: 1 
+};
 
 import Button from "../components/ui/Button";
 import Header from "./Header";
@@ -192,7 +206,14 @@ export default function CreatePostRoute() {
     // ===============================================
 
     return (
-        <main className="px-mobile-x pt-mobile-top pb-mobile-bottom sm:p-6 min-h-screen w-full text-text relative">
+        <motion.main 
+            className="px-mobile-x pt-mobile-top pb-mobile-bottom sm:p-6 min-h-screen w-full text-text relative"
+            variants={pageVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={pageTransition}
+        >
 
             {/* Pop-up de notification au centre en haut */}
             {texteMessage !== "" && (
@@ -290,6 +311,6 @@ export default function CreatePostRoute() {
                     </article>
                 </Profil>
             </section>
-        </main>
+        </motion.main>
     );
 }

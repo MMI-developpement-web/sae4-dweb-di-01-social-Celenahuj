@@ -2,6 +2,20 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
 import { Loader2, CircleCheck, TriangleAlert } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { motion } from "framer-motion";
+
+// Configuration de la transition de page
+const pageVariants = {
+    initial: { opacity: 0, x: -20 },
+    animate: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: 20 }
+};
+const pageTransition = { 
+    type: "spring" as const, 
+    stiffness: 100, 
+    damping: 20,
+    mass: 1 
+};
 
 // Composants de l'Interface Utilisateur (UI)
 import Header from "./Header";
@@ -125,14 +139,28 @@ export default function PrivacySettings() {
     // Écran blanc de chargement avec un spinner
     if (loading === true) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-white">
+            <motion.div 
+                className="min-h-screen flex items-center justify-center bg-white"
+                variants={pageVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                transition={pageTransition}
+            >
                 <Loader2 className="animate-spin text-gray-500" size={32} />
-            </div>
+            </motion.div>
         );
     }
 
     return (
-        <main className="min-h-screen text-text pt-mobile-top px-mobile-x pb-mobile-bottom relative">
+        <motion.main 
+            className="min-h-screen text-text pt-mobile-top px-mobile-x pb-mobile-bottom relative"
+            variants={pageVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={pageTransition}
+        >
             
             {/* Pop-up conditionnelle selon nos variables de modèle */}
             {messageTexte !== "" && (
@@ -166,6 +194,6 @@ export default function PrivacySettings() {
                 </div>
 
             </div>
-        </main>
+        </motion.main>
     );
 }

@@ -5,7 +5,6 @@ import {
     Grid3X3,
     Heart,
     MessageCircle,
-    Repeat2,
     Send,
     Ellipsis,
     Link as LinkIcon,
@@ -14,11 +13,73 @@ import {
     TriangleAlert
 } from "lucide-react";
 
+import { motion } from "framer-motion";
+
+// --- GESTION DES ANIMATIONS (Clean Code) ---
+
+// 1. Animation du Bouton "Like"
+const likeVariants = {
+    rest: { scale: 1 },
+    hover: { scale: 1.2 },
+    tap: { scale: 0.8 }
+};
+// Explication technique pour le prof : 
+// - type: "spring" => utilise une animation basée sur la physique (effet ressort/rebond naturel).
+// - as const => verrouille le type pour TypeScript (dit exactement que c'est la valeur absolue "spring" et non un vulgaire string, requis par Framer Motion).
+const likeTransition = { type: "spring" as const, stiffness: 400, damping: 17 };
+
+// Animation de l'icône Commentaire
+const commentVariants = {
+    rest: { scale: 1, rotate: 0 },
+    hover: { scale: 1.1, rotate: -10 },
+    tap: { scale: 0.9, rotate: 10 }
+};
+const commentTransition = { type: "spring" as const, stiffness: 400, damping: 15 };
+
+// 2. Animation du Conteneur Parent (pour le décalage "stagger")
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: {
+            // Indique que les éléments enfants apparaîtront avec 0.1s d'intervalle
+            staggerChildren: 0.1 
+        }
+    }
+};
+
+// 3. Animation des Éléments Enfants (cartes de post)
+const itemVariants = {
+    hidden: { opacity: 0, y: 40 }, // Position de départ : invisible et décalé vers le bas
+    visible: { 
+        opacity: 1, 
+        y: 0, // Remonte à sa place initiale
+        transition: { 
+            // Effet ressort pour un rendu plus vivant, pas d'animation linéaire "cheap"
+            type: "spring" as const, 
+            stiffness: 100, 
+            damping: 20 
+        }
+    }
+};
+
+// 4. Animation de la Page (Transition au changement de route)
+const pageVariants = {
+    initial: { opacity: 0, x: -20 }, // Départ : transparent et décalé à gauche
+    animate: { opacity: 1, x: 0 },   // Arrivée  : opaque et centré
+    exit: { opacity: 0, x: 20 }      // Sortie   : transparent et décalé à droite (si AnimatePresence utilisé)
+};
+const pageTransition = { 
+    type: "spring" as const, 
+    stiffness: 100, 
+    damping: 20,
+    mass: 1 
+};
+
 import Avatar from "../components/ui/Avatar";
 import Button from "../components/ui/Button";
 import TweetCard from "../components/Tweet";
 import Profil from "../components/ui/Profil";
-import StatItem from "../components/ui/StatItem";
 import Tab from "../components/ui/Tab";
 import TabGroup from "./TabGroup";
 import HeaderProfile from "./HeaderProfile";
@@ -322,7 +383,14 @@ export default function ProfileContent() {
 
     return (
         <>
-            <main className="min-h-screen bg-bg text-text-title font-inter px-mobile-x pb-mobile-bottom flex flex-col items-center relative">
+            <motion.main 
+                className="min-h-screen bg-bg text-text-title font-inter px-mobile-x pb-mobile-bottom flex flex-col items-center relative"
+                variants={pageVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                transition={pageTransition}
+            >
 
                 {/* Popup (Seulement si un message existe) */}
                 {messageTexte !== "" && (
@@ -441,16 +509,25 @@ export default function ProfileContent() {
                         </Tab>
                     </TabGroup>
 
-                    {/* Zone des Cartes Tweets */}
-                    <section className="flex flex-col gap-card-gap w-full pb-10" aria-label="Publications de l'utilisateur">
+                    {/* Zone des Cartes Tweets animées */}
+                    <motion.section 
+                        className="flex flex-col gap-card-gap w-full pb-10" 
+                        aria-label="Publications de l'utilisateur"
+                        // Props simplifiées : on indique les noms des variants (initial/animate)
+                        variants={containerVariants}
+                        initial="hidden"
+                        animate="visible"
+                    >
                         {loading === true ? (
                             <div className="flex justify-center py-12" role="status" aria-label="Chargement des publications">
                                 <Loader2 className="animate-spin text-brand-lavender" size={28} />
                             </div>
                         ) : (
                             posts.map((post) => (
-                                <TweetCard key={post.id} variant="primary" size="md">
-                                    <header className="flex justify-between items-start w-full">
+                                // Chaque élément de la liste récupère les variants définis pour propager l'animation en décalé
+                                <motion.div key={post.id} variants={itemVariants}>
+                                    <TweetCard variant="primary" size="md">
+                                        <header className="flex justify-between items-start w-full">
                                         <Profil 
                                             className="flex w-full cursor-pointer hover:opacity-80 transition-opacity gap-3"
                                             onClick={() => navigate(`/profil/${post.author?.id}`)}
@@ -503,7 +580,15 @@ export default function ProfileContent() {
                                                 size="stat"
                                                 onClick={() => actionAimerPost(post.id)}
                                             >
-                                                <Heart size={18} className={post.isLiked ? "fill-current" : ""} />
+                                                <motion.div
+                                                    variants={likeVariants}
+                                                    initial="rest"
+                                                    whileHover="hover"
+                                                    whileTap="tap"
+                                                    transition={likeTransition}
+                                                >
+                                                    <Heart size={18} className={post.isLiked ? "fill-current" : ""} />
+                                                </motion.div>
                                                 <span className="ml-2 text-sm">{post.likesCount || 0}</span>
                                             </Button>
 
@@ -512,18 +597,27 @@ export default function ProfileContent() {
                                                 size="stat"
                                                 onClick={() => setOpenCommentsPost(post)}
                                             >
-                                                <MessageCircle size={18} />
+                                                <motion.div
+                                                    variants={commentVariants}
+                                                    initial="rest"
+                                                    whileHover="hover"
+                                                    whileTap="tap"
+                                                    transition={commentTransition}
+                                                >
+                                                    <MessageCircle size={18} />
+                                                </motion.div>
                                                 <span className="ml-2 text-sm">{post.commentsCount || 0}</span>
                                             </Button>
                                         </div>
                                         <Button variant="icon" size="stat"><Send size={18} /></Button>
                                     </footer>
                                 </TweetCard>
+                                </motion.div>
                             ))
                         )}
-                    </section>
+                    </motion.section>
                 </section>
-            </main>
+            </motion.main>
 
             <PostDrawer
                 isOpen={selectedPost !== null}

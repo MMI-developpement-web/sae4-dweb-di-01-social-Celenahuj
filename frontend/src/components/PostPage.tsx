@@ -1,6 +1,66 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, MessageCircle, Plus, Heart, Repeat2, Ellipsis, Send, RefreshCw, CircleCheck, TriangleAlert } from 'lucide-react';
+import { Home, MessageCircle, Plus, Heart, Ellipsis, Send, RefreshCw, CircleCheck, TriangleAlert } from 'lucide-react';
+import { motion } from "framer-motion";
+
+// Configuration de l'animation de Like
+const likeVariants = {
+    rest: { scale: 1 },
+    hover: { scale: 1.2 },
+    tap: { scale: 0.8 }
+};
+// Explication technique pour le prof : 
+// - type: "spring" => utilise une animation basée sur la physique (effet ressort/rebond naturel).
+// - as const => verrouille le type pour TypeScript (dit exactement que c'est la valeur absolue "spring" et non un vulgaire string, requis par Framer Motion).
+const likeTransition = { type: "spring" as const, stiffness: 400, damping: 17 };
+
+// Configuration de l'animation de Commentaire
+const commentVariants = {
+    rest: { scale: 1, rotate: 0 },
+    hover: { scale: 1.1, rotate: -10 }, // Léger tilt sur le côté au survol
+    tap: { scale: 0.9, rotate: 10 }
+};
+const commentTransition = { type: "spring" as const, stiffness: 400, damping: 15 };
+
+// 2. Animation du Conteneur Parent (pour le décalage "stagger")
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: {
+            // Indique que les éléments enfants apparaîtront avec 0.1s d'intervalle
+            staggerChildren: 0.1 
+        }
+    }
+};
+
+// 3. Animation des Éléments Enfants (cartes de post)
+const itemVariants = {
+    hidden: { opacity: 0, y: 40 }, // Position de départ : invisible et décalé vers le bas
+    visible: { 
+        opacity: 1, 
+        y: 0, // Remonte à sa place initiale
+        transition: { 
+            // Effet ressort pour un rendu plus vivant
+            type: "spring" as const, 
+            stiffness: 100, 
+            damping: 20 
+        }
+    }
+};
+
+// 4. Animation de la Page (Transition au changement de route)
+const pageVariants = {
+    initial: { opacity: 0, x: -20 }, // Départ : transparent et décalé à gauche
+    animate: { opacity: 1, x: 0 },   // Arrivée  : opaque et centré
+    exit: { opacity: 0, x: 20 }      // Sortie   : transparent et décalé à droite (si AnimatePresence utilisé)
+};
+const pageTransition = { 
+    type: "spring" as const, 
+    stiffness: 100, 
+    damping: 20,
+    mass: 1 
+};
 
 // Import de nos Hooks liés aux Contexts
 import { useAuth } from "../contexts/AuthContext";
@@ -8,7 +68,6 @@ import { usePosts } from "../contexts/PostContext";
 
 // Import de nos composants UI
 import Button from "./ui/Button";
-import StatItem from "./ui/StatItem";
 import TweetCard from "./Tweet";
 import Profil from "./ui/Profil";
 import Avatar from "./ui/Avatar";
@@ -129,7 +188,14 @@ export default function PostRoute() {
     // ===============================================
 
     return (
-        <main className="min-h-screen bg-bg flex flex-col items-center w-full pb-mobile-bottom font-inter relative">
+        <motion.main 
+            className="min-h-screen bg-bg flex flex-col items-center w-full pb-mobile-bottom font-inter relative"
+            variants={pageVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={pageTransition}
+        >
             
             {/* Pop-up de message (Alertes d'erreur ou succès) */}
             {messageTexte !== "" && (
@@ -175,10 +241,17 @@ export default function PostRoute() {
             {/* Le Menu Latéral */}
             <Sidebar isOpen={menuOuvert} onClose={() => setMenuOuvert(false)} />
 
-            {/* Liste des publications (Fil d'actualité) */}
-            <section className="flex flex-col gap-card-gap items-center w-full max-w-xl px-mobile-x mt-8">
+            {/* Liste des publications animées (Fil d'actualité) */}
+            <motion.section 
+                className="flex flex-col gap-card-gap items-center w-full max-w-xl px-mobile-x mt-8"
+                // Props simplifiées : noms des variants
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+            >
                 {postsFiltres.map((post) => (
-                    <article key={post.id} className="w-full m-0 p-0">
+                    // Chaque élément s'anime en cascade grâce au staggerChildren du parent
+                    <motion.article key={post.id} className="w-full m-0 p-0" variants={itemVariants}>
                         <TweetCard variant="primary" size="md">
                             
                             <header className="flex justify-between items-start w-full">
@@ -231,20 +304,36 @@ export default function PostRoute() {
                             <footer className="flex justify-between w-full mt-2">
                                 <div className="flex gap-4">
                                     <Button variant={post.isLiked ? "like" : "icon"} size="stat" onClick={() => actionAimerPost(post.id)}>
-                                        <Heart size={18} className={post.isLiked ? "fill-current" : ""} />
+                                        <motion.div
+                                            variants={likeVariants}
+                                            initial="rest"
+                                            whileHover="hover"
+                                            whileTap="tap"
+                                            transition={likeTransition}
+                                        >
+                                            <Heart size={18} className={post.isLiked ? "fill-current" : ""} />
+                                        </motion.div>
                                         <span className="ml-2 text-sm">{post.likesCount || 0}</span>
                                     </Button>
                                     <Button variant="icon" size="stat" onClick={() => setPostPourCommentaires(post)}>
-                                        <MessageCircle size={18} />
+                                        <motion.div
+                                            variants={commentVariants}
+                                            initial="rest"
+                                            whileHover="hover"
+                                            whileTap="tap"
+                                            transition={commentTransition}
+                                        >
+                                            <MessageCircle size={18} />
+                                        </motion.div>
                                         <span className="ml-2 text-sm">{post.commentsCount || 0}</span>
                                     </Button>
                                 </div>
                                 <Button variant="icon" size="stat"><Send size={18} /></Button>
                             </footer>
                         </TweetCard>
-                    </article>
+                    </motion.article>
                 ))}
-            </section>
+            </motion.section>
 
             {/* Tiroirs cachés (Menu du bas) */}
             <PostDrawer 
@@ -270,6 +359,6 @@ export default function PostRoute() {
                 <Button variant="navIcon" onClick={() => navigate("/feed")}><Home size={26} /></Button>
                 <Button variant="navIcon" onClick={() => navigate("/createpost")}><Plus size={32} /></Button>
             </BarNav>
-        </main>
+        </motion.main>
     );
 }
