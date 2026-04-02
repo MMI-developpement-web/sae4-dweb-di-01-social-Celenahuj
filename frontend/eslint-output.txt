@@ -1,0 +1,112 @@
+
+> app@0.0.0 lint
+> eslint .
+
+
+/workspaces/sae4-dweb-di-01-social-Celenahuj/frontend/src/App.tsx
+  20:1   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  21:27  error  'Icon' is defined but never used                                                                                     @typescript-eslint/no-unused-vars
+
+/workspaces/sae4-dweb-di-01-social-Celenahuj/frontend/src/components/BlockedUsersPage.tsx
+  29:68  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-explicit-any
+  78:9   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/workspaces/sae4-dweb-di-01-social-Celenahuj/frontend/src/components/BlockedUsersPage.tsx:78:9
+  76 |     // On lance cette action automatiquement quand on arrive sur la page
+  77 |     useEffect(() => { 
+> 78 |         chargerUtilisateursBloques(); 
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  79 |     }, [token]);
+  80 |
+  81 |     // Action : Débloquer quelqu'un de la liste  react-hooks/set-state-in-effect
+  79:8   warning  React Hook useEffect has a missing dependency: 'chargerUtilisateursBloques'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     react-hooks/exhaustive-deps
+
+/workspaces/sae4-dweb-di-01-social-Celenahuj/frontend/src/components/CommentDrawer.tsx
+  13:11  error    Unexpected any. Specify a different type                                                                                @typescript-eslint/no-explicit-any
+  32:54  error    Unexpected any. Specify a different type                                                                                @typescript-eslint/no-explicit-any
+  86:8   warning  React Hook useEffect has a missing dependency: 'chargerCommentaires'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/workspaces/sae4-dweb-di-01-social-Celenahuj/frontend/src/components/EditProfile.tsx
+  100:8  warning  React Hook useEffect has a missing dependency: 'chargerInfosActuelles'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/workspaces/sae4-dweb-di-01-social-Celenahuj/frontend/src/components/PostDrawer.tsx
+  10:11  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+  35:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/workspaces/sae4-dweb-di-01-social-Celenahuj/frontend/src/components/PostDrawer.tsx:35:13
+  33 |     useEffect(() => {
+  34 |         if (isOpen === false) {
+> 35 |             setAfficherConfirmation(false);
+     |             ^^^^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  36 |         }
+  37 |     }, [isOpen]);
+  38 |  react-hooks/set-state-in-effect
+
+/workspaces/sae4-dweb-di-01-social-Celenahuj/frontend/src/components/PostPage.tsx
+  43:70  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  44:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspaces/sae4-dweb-di-01-social-Celenahuj/frontend/src/components/PrivacySetting.tsx
+   72:18  error    'erreur' is defined but never used                                                                                 @typescript-eslint/no-unused-vars
+   82:8   warning  React Hook useEffect has a missing dependency: 'chargerDonnees'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  108:18  error    'erreur' is defined but never used                                                                                 @typescript-eslint/no-unused-vars
+
+/workspaces/sae4-dweb-di-01-social-Celenahuj/frontend/src/components/ProfilPage.tsx
+   46:38  error    Unexpected any. Specify a different type                                                                          @typescript-eslint/no-explicit-any
+   47:40  error    Unexpected any. Specify a different type                                                                          @typescript-eslint/no-explicit-any
+   51:54  error    Unexpected any. Specify a different type                                                                          @typescript-eslint/no-explicit-any
+   52:62  error    Unexpected any. Specify a different type                                                                          @typescript-eslint/no-explicit-any
+  176:8   warning  React Hook useEffect has a missing dependency: 'chargerProfil'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  180:8   warning  React Hook useEffect has a missing dependency: 'chargerPosts'. Either include it or remove the dependency array   react-hooks/exhaustive-deps
+
+/workspaces/sae4-dweb-di-01-social-Celenahuj/frontend/src/components/ui/Avatar.tsx
+  44:11  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+/workspaces/sae4-dweb-di-01-social-Celenahuj/frontend/src/components/ui/HeaderProfileContent.tsx
+  24:11  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+/workspaces/sae4-dweb-di-01-social-Celenahuj/frontend/src/components/ui/Logo.tsx
+   3:7   error  'LogoVariants' is assigned a value but only used as a type  @typescript-eslint/no-unused-vars
+  29:32  error  'variant' is defined but never used                         @typescript-eslint/no-unused-vars
+  29:41  error  'size' is defined but never used                            @typescript-eslint/no-unused-vars
+
+/workspaces/sae4-dweb-di-01-social-Celenahuj/frontend/src/contexts/AuthContext.tsx
+  32:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/workspaces/sae4-dweb-di-01-social-Celenahuj/frontend/src/contexts/AuthContext.tsx:32:13
+  30 |
+  31 |         if (storedId && storedUsername) {
+> 32 |             setUser({
+     |             ^^^^^^^ Avoid calling setState() directly within an effect
+  33 |                 id: parseInt(storedId, 10),
+  34 |                 username: storedUsername,
+  35 |                 avatar: storedAvatar || undefined  react-hooks/set-state-in-effect
+  70:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               react-refresh/only-export-components
+
+/workspaces/sae4-dweb-di-01-social-Celenahuj/frontend/src/contexts/PostContext.tsx
+  111:17  error  'e' is defined but never used                                                                                                   @typescript-eslint/no-unused-vars
+  140:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/workspaces/sae4-dweb-di-01-social-Celenahuj/frontend/src/main.tsx
+  24:7  error  Fast refresh only works when a file has exports. Move your component(s) to a separate file  react-refresh/only-export-components
+
+✖ 32 problems (26 errors, 6 warnings)
+

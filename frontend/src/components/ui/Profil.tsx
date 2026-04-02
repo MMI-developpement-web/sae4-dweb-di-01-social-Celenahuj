@@ -37,7 +37,6 @@ export default function Profil({
   children,
   variant,
   size,
-  className,
   ...props
 }: ProfilProps) {
   return (

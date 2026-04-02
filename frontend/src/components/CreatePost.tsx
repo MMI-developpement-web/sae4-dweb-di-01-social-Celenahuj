@@ -2,10 +2,6 @@ import { useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { CircleCheck, TriangleAlert, Image, X } from "lucide-react";
 
-// --- 1. Import de tes Contextes ---
-import { useAuth } from "../contexts/AuthContext";
-import { usePosts } from "../contexts/PostContext"; 
-
 import Button from "../components/ui/Button";
 import Header from "./Header";
 import Profil from "./ui/Profil";
@@ -13,121 +9,201 @@ import Avatar from "./ui/Avatar";
 import Textarea from "./ui/Texte";
 import Message from "./Message";
 
+// Import de nos Stores globaux (Contextes)
+import { useAuth } from "../contexts/AuthContext";
+import { usePosts } from "../contexts/PostContext"; 
+
 export default function CreatePostRoute() {
+    // ===============================================
+    // STORE & OUTILS (Context API, Navigation)
+    // ===============================================
     const navigate = useNavigate();
     const location = useLocation();
-    const fileInputRef = useRef<HTMLInputElement>(null); // Pour déclencher le choix de fichier
+    const API_URL = import.meta.env.VITE_API_URL;
     
-    // --- 2. Récupération des données globales via les Stores ---
     const { token, user } = useAuth();
-    const { fetchPosts } = usePosts();
+    const { fetchPosts } = usePosts(); // Pour rafraichir le feed direct après avoir posté !
 
+    // Raccourci magique : si on vient du bouton modifier, 
+    // l'ancien tweet est dans location.state.editPost
     const postAModifier = location.state?.editPost;
 
-    const [texteDuTweet, setTexteDuTweet] = useState(postAModifier?.content || "");
-    const [enCoursDenvoi, setEnCoursDenvoi] = useState(false);
-    const [feedback, setFeedback] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+    // Référence pour cliquer sur l'input de fichier caché
+    const inputFichierOutil = useRef<HTMLInputElement>(null);
 
-    // --- ÉTATS POUR LES MÉDIAS ---
-    const [file, setFile] = useState<File | null>(null);
-    const [preview, setPreview] = useState<string | null>(postAModifier?.media ? `${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/${postAModifier.media}` : null);
-    const [removeExistingMedia, setRemoveExistingMedia] = useState(false);
 
+    // ===============================================
+    // 1. MODÈLE (Les données tapées ou sélectionnées)
+    // ===============================================
+
+    // Le texte du tweet (vide par défaut, ou le texte existant si c'est une modif)
+    const [texteDuPost, setTexteDuPost] = useState(postAModifier?.content || "");
+    const [envoiEnCours, setEnvoiEnCours] = useState(false);
+    
+    // Alertes simplifiées
+    const [texteMessage, setTexteMessage] = useState("");
+    const [typeMessage, setTypeMessage] = useState("");
+
+    // Les fichiers (images/vidéos)
+    const [fichierAEnvoyer, setFichierAEnvoyer] = useState<File | null>(null);
+    
+    // Soit on a déjà une image du post à modifier, soit c'est vide null
+    const urlApercuBase = postAModifier?.media 
+        ? `${API_URL.replace('/api', '')}/uploads/${postAModifier.media}` 
+        : null;
+    const [apercuMedia, setApercuMedia] = useState<string | null>(urlApercuBase);
+    
+    // Si on supprime une ancienne image lors d'une modification
+    const [supprimerAncienMedia, setSupprimerAncienMedia] = useState(false);
+
+    // -- Logique métier pour valider l'envoi --
     const LIMITE_CARACTERES = 280;
-    const limiteDepassee = texteDuTweet.length > LIMITE_CARACTERES;
-    const estVide = texteDuTweet.trim().length === 0 && !file && !preview;
-    // On désactive aussi le bouton si on n'a pas de token
-    const boutonDesactive = estVide || limiteDepassee || enCoursDenvoi || !token;
+    const estTropLong = texteDuPost.length > LIMITE_CARACTERES;
+    const estTotalementVide = texteDuPost.trim().length === 0 && fichierAEnvoyer === null && apercuMedia === null;
+    
+    // Le bouton Publier est grisé SI...
+    let boutonBloque = false;
+    if (estTotalementVide === true || estTropLong === true || envoiEnCours === true || !token) {
+        boutonBloque = true;
+    }
 
-    const handleFileChange = (e: any) => { //n'importe quoi comme objet
-        const liste = e.target.files;
 
-        if (liste && liste.length > 0) {
-            const fichier = liste[0];
-            setFile(fichier);
-            setPreview(URL.createObjectURL(fichier));
+    // ===============================================
+    // 2. CONTRÔLEUR (La logique et les actions)
+    // ===============================================
+
+    const afficherAlerte = (texte: string, type: string) => {
+        setTexteMessage(texte);
+        setTypeMessage(type);
+    };
+
+    // Action : L'utilisateur a choisi un fichier sur son téléphone/PC
+    const actionChoisirFichier = (evenement: React.ChangeEvent<HTMLInputElement>) => {
+        const listeFichiers = evenement.target.files;
+
+        if (listeFichiers && listeFichiers.length > 0) {
+            const fichier = listeFichiers[0];
+            setFichierAEnvoyer(fichier); // On garde l'original pour l'envoyer plus tard
+            setApercuMedia(URL.createObjectURL(fichier)); // On l'affiche tout de suite
         }
     };
 
-    const removeFile = () => {
-        setFile(null);
-        setPreview(null);
+    // Action : Enlever l'image/vidéo actuelle (clic sur la petite croix)
+    const actionRetirerFichier = () => {
+        setFichierAEnvoyer(null);
+        setApercuMedia(null);
+        
+        // S'il y avait une VRAIE image avant, on note au serveur de la détruire
         if (postAModifier?.media) {
-            setRemoveExistingMedia(true);
+            setSupprimerAncienMedia(true);
         }
-        if (fileInputRef.current) fileInputRef.current.value = "";
+        
+        // On vide la valeur de l'input caché pour pouvoir reprendre la même image si on change d'avis
+        if (inputFichierOutil.current) {
+            inputFichierOutil.current.value = "";
+        }
     };
 
-    /**
-     * Fonction pour envoyer les données à Symfony (Modifiée pour utiliser le Store)
-     */
-    const envoyerLeTweet = async () => {
-        setFeedback(null);
-        if (boutonDesactive) return;
-
-        setEnCoursDenvoi(true);
-
-        // On utilise FormData car le JSON ne peut pas envoyer de fichiers images/vidéos
-        const formData = new FormData();
-        formData.append("content", texteDuTweet);
-        if (file) {
-            formData.append("file", file); // On ajoute le fichier sélectionné
+    // Action : Clic sur le bouton physique/UI pour ouvrir la galerie photo
+    const actionOuvrirGalerie = () => {
+        if (inputFichierOutil.current) {
+            inputFichierOutil.current.click();
         }
-        if (removeExistingMedia) {
-            formData.append("removeExistingMedia", "true");
-        }
+    };
+
+    // Action principale : Poster le Tweet 
+    const actionPublier = async () => {
+        // 1. Nettoyage et blocage anti-spam
+        setTexteMessage("");
+        setTypeMessage("");
+        if (boutonBloque) return;
+
+        setEnvoiEnCours(true);
 
         try {
-            // Si on modifie un tweet, on utilise son ID dans l'URL (avec POST pour l'upload d'image Symfony)
-            const url = postAModifier 
-                ? `${import.meta.env.VITE_API_URL}/posts/${postAModifier.id}`
-                : `${import.meta.env.VITE_API_URL}/posts`;
+            // 2. Préparation du "Colis" FormData (Même système compliqué simplifié que pour le profil)
+            const colisAEnvoyer = new FormData();
+            colisAEnvoyer.append("content", texteDuPost);
+            
+            if (fichierAEnvoyer !== null) {
+                colisAEnvoyer.append("file", fichierAEnvoyer);
+            }
+            if (supprimerAncienMedia === true) {
+                colisAEnvoyer.append("removeExistingMedia", "true");
+            }
 
-            const reponse = await fetch(url, {
-                method: 'POST', // POST est utilisé pour l'ajout OU la modification avec des fichiers en PHP
+            // 3. Déterminer l'URL : Création vs Modification
+            let urlAPI = `${API_URL}/posts`;
+            if (postAModifier) {
+                urlAPI = `${API_URL}/posts/${postAModifier.id}`;
+            }
+
+            // 4. L'appel au serveur PHP/Symfony
+            const reponse = await fetch(urlAPI, {
+                method: 'POST', // POST gère les DEUX cas car FormData en PUT pose problème dans certains serveurs
                 headers: {
-                    // --- 3. On utilise le token de l'AuthContext ---
                     'Authorization': `Bearer ${token}`
                 },
-                body: formData // On envoie le formData
+                body: colisAEnvoyer
             });
 
-            if (reponse.ok) {
-                setFeedback({ type: 'success', text: postAModifier ? "Bravo, votre message a été modifié ! Redirection..." : "Bravo, votre message est publié ! Redirection..." });
-                setTexteDuTweet("");
-                removeFile();
-                
-                // --- 4. OPTIONNEL MAIS PRATIQUE : On rafraîchit le store des posts ---
-                // Comme ça au retour sur /feed, le nouveau post sera déjà là !
-                await fetchPosts(true);
-
-                setTimeout(() => navigate("/feed"), 2000); // J'ai raccourci à 2s pour que ce soit plus réactif
-            } else {
+            // 5. Gestion des erreurs
+            if (reponse.ok === false) {
                 const donneesErreur = await reponse.json();
-                setFeedback({ type: 'error', text: donneesErreur.error || "Le serveur a refusé le message." });
-                setTimeout(() => setFeedback(null), 3000);
+                afficherAlerte(donneesErreur.error || "Le serveur a refusé le message.", "error");
+                
+                setTimeout(() => {
+                    setTexteMessage("");
+                    setTypeMessage("");
+                }, 3000);
+                
+                setEnvoiEnCours(false);
+                return; // On arrête là !
             }
+
+            // 6. Succès !
+            afficherAlerte(
+                postAModifier ? "Bravo, publication modifiée !" : "Bravo, publication envoyée !", 
+                "success"
+            );
+            
+            // Nettoyage rapide (pour ne pas double post si le tel freeze)
+            setTexteDuPost("");
+            actionRetirerFichier();
+            
+            // 7. On utilise le Store usePosts() pour tout rafraîchir en fond !
+            await fetchPosts(true);
+
+            // 8. Retour automatique au grand Fil d'actualité
+            setTimeout(() => {
+                navigate("/feed");
+            }, 1500);
+
         } catch (erreurReseau) {
             console.error("Erreur réseau :", erreurReseau);
-            setFeedback({ type: 'error', text: "Erreur : Impossible de joindre le serveur. Vérifiez votre connexion." });
-        } finally {
-            setEnCoursDenvoi(false);
+            afficherAlerte("Impossible de joindre le serveur.", "error");
+            setEnvoiEnCours(false);
         }
     };
+
+
+    // ===============================================
+    // 3. VUE (L'Interface Utilisateur - Composants)
+    // ===============================================
 
     return (
         <main className="px-mobile-x pt-mobile-top pb-mobile-bottom sm:p-6 min-h-screen w-full text-text relative">
 
-            {/* Affichage des messages de retour */}
-            {feedback && (
+            {/* Pop-up de notification au centre en haut */}
+            {texteMessage !== "" && (
                 <section className="fixed top-[50px] left-1/2 -translate-x-1/2 z-[100] w-11/12 max-w-sm" aria-live="polite">
                     <Message>
-                        {feedback.type === 'success' ? (
+                        {typeMessage === 'success' ? (
                             <CircleCheck className="text-green-500" />
                         ) : (
                             <TriangleAlert className="stroke-warning" />
                         )}
-                        <span>{feedback.text}</span>
+                        <span>{texteMessage}</span>
                     </Message>
                 </section>
             )}
@@ -135,72 +211,82 @@ export default function CreatePostRoute() {
             <section className="flex flex-col gap-14 max-w-2xl mx-auto w-full">
 
                 <Header onBack={() => navigate(-1)}>
+                    {/* Bouton pour publier ou modifier */}
                     <Button
                         variant="small"
                         size="sm"
-                        onClick={envoyerLeTweet}
-                        disabled={boutonDesactive}
+                        onClick={actionPublier}
+                        disabled={boutonBloque}
                     >
-                        {enCoursDenvoi ? "Envoi..." : (postAModifier ? "Modifier" : "Post")}
+                        {envoiEnCours ? "Envoi..." : (postAModifier ? "Modifier" : "Post")}
                     </Button>
                 </Header>
 
                 <Profil className="block">
                     <article className="flex flex-col gap-2 w-full">
                         <div className="flex items-start gap-4 w-full">
+                            
                             <aside className="flex-shrink-0 pt-1">
-                                {/* --- 5. On utilise l'avatar du AuthContext --- */}
                                 <Avatar src={user?.avatar} size="md" shape="circle" />
                             </aside>
+                            
                             <div className="flex flex-col gap-4 w-full">
                                 <Textarea
                                     variant="ghost"
                                     size="lg"
                                     placeholder="Quoi de neuf ??"
                                     rows={4}
-                                    value={texteDuTweet}
-                                    onChange={(e) => setTexteDuTweet(e.target.value)}
+                                    value={texteDuPost}
+                                    onChange={(evenement) => setTexteDuPost(evenement.target.value)}
                                 />
 
-                                {/* ZONE DE PRÉVISUALISATION */}
-                                {preview && (
+                                {/* ZONE DE PRÉVISUALISATION DU MÉDIA */}
+                                {apercuMedia !== null && (
                                     <figure className="relative w-full rounded-2xl overflow-hidden border border-border bg-surface m-0">
+                                        
                                         <button
                                             type="button"
-                                            onClick={removeFile}
+                                            onClick={actionRetirerFichier}
                                             className="absolute top-2 right-2 bg-black/70 p-1.5 rounded-full text-white z-10 hover:bg-black"
                                         >
                                             <X size={16} />
                                         </button>
-                                        {(file?.type.startsWith("video") || (!file && preview.match(/\.(mp4|webm|ogg)$/i))) ? (
-                                            <video src={preview} className="w-full max-h-[300px] object-cover" controls />
+
+                                        {/* Détection simplifiée si c'est une vidéo ou une image */}
+                                        {(fichierAEnvoyer?.type.startsWith("video") || (!fichierAEnvoyer && apercuMedia.match(/\.(mp4|webm|ogg)$/i))) ? (
+                                            <video src={apercuMedia} className="w-full max-h-[300px] object-cover" controls />
                                         ) : (
-                                            <img src={preview} alt="Aperçu" className="w-full max-h-[300px] object-cover" />
+                                            <img src={apercuMedia} alt="Aperçu du média" className="w-full max-h-[300px] object-cover" />
                                         )}
                                     </figure>
                                 )}
                             </div>
                         </div>
 
+                        {/* Barre d'outils (Icône pour ajouter une image) */}
                         <footer className="flex items-center gap-4 py-2">
                             <button
                                 type="button"
-                                onClick={() => fileInputRef.current?.click()}
+                                onClick={actionOuvrirGalerie}
                             >
                                 <Image size={22} />
                             </button>
+                            
+                            {/* Le vrai input HTML dégueulasse est caché ici */}
                             <input
                                 type="file"
-                                ref={fileInputRef}
+                                ref={inputFichierOutil}
                                 className="hidden"
                                 accept="image/*,video/*"
-                                onChange={handleFileChange}
+                                onChange={actionChoisirFichier}
                             />
                         </footer>
-                        <div className={`text-right text-body-sm ${limiteDepassee ? "text-warning font-bold" : "text-text-muted"
-                            }`}>
-                            {texteDuTweet.length} / {LIMITE_CARACTERES}
+
+                        {/* Compteur de caractères final */}
+                        <div className={`text-right text-body-sm ${estTropLong ? "text-warning font-bold" : "text-text-muted"}`}>
+                            {texteDuPost.length} / {LIMITE_CARACTERES}
                         </div>
+
                     </article>
                 </Profil>
             </section>

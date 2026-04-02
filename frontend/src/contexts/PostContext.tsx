@@ -108,7 +108,7 @@ export const PostProvider = ({ children }: { children: ReactNode }) => {
                 return { error: errorData.error || "Action impossible, vous êtes bloqué." };
             }
             return { error: "Erreur serveur lors du like." };
-        } catch(e) {
+        } catch {
             return { error: "Erreur réseau." };
         }
     };

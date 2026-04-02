@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Ban, UserRound, CircleCheck, TriangleAlert } from 'lucide-react';
+import { LogOut, Ban, UserRound, CircleCheck, TriangleAlert, Lock } from 'lucide-react';
+
 import Button from "./ui/Button";
 import Avatar from "./ui/Avatar";
 import Aside from "./ui/Aside";
@@ -13,66 +14,118 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+    // ===============================================
+    // STORE & OUTILS (Context API, Navigation)
+    // ===============================================
     const navigate = useNavigate();
-    const { logout, user } = useAuth(); // Utilisation du contexte global
-    const [feedback, setFeedback] = useState<{type: 'success' | 'error', text: string} | null>(null);
-    const [showConfirmLogout, setShowConfirmLogout] = useState(false);
+    const { logout, user } = useAuth(); // Les données globales via Context (Pas de prop drilling)
 
-    // Fonction pour afficher la confirmation de déconnexion
-    const handleLogoutClick = () => {
-        setShowConfirmLogout(true);
+    // ===============================================
+    // 1. MODÈLE (Les données locales de la sidebar)
+    // ===============================================
+    
+    // Alertes simplifiées (plus d'objet complexe {type:..., text:...})
+    const [messageTexte, setMessageTexte] = useState("");
+    const [messageType, setMessageType] = useState("");
+    
+    // État (boolean simple) pour la fenêtre de confirmation
+    const [afficherConfirmation, setAfficherConfirmation] = useState(false);
+
+
+    // ===============================================
+    // 2. CONTRÔLEUR (La logique et les actions explicitées)
+    // ===============================================
+
+    // Action : Afficher un message temporaire à l'écran
+    const afficherToast = (texte: string, type: string) => {
+        setMessageTexte(texte);
+        setMessageType(type);
     };
 
-    // Fonction pour se déconnecter
-    const performLogout = () => {
-        setShowConfirmLogout(false);
+    // Action : On clique sur le bouton de déconnexion (Ouvre la boîte de dialogue)
+    const demanderDeconnexion = () => {
+        setAfficherConfirmation(true);
+    };
 
-        // 1. On prévient l'utilisateur
-        setFeedback({ type: 'success', text: "Tu es déconnecté ! Redirection..." });
+    // Action : On annule la déconnexion
+    const annulerDeconnexion = () => {
+        setAfficherConfirmation(false);
+    };
 
-        // 2. On repart à la page Login via le context
+    // Action : On confirme et exécute la vrai déconnexion
+    const confirmerDeconnexion = () => {
+        setAfficherConfirmation(false); // Ferme la boîte de confirmation
+
+        // 1. On prévient l'utilisateur pour le confort visuel
+        afficherToast("Tu es déconnecté ! Redirection...", "success");
+
+        // 2. On attend une seconde puis on appelle le store (logout)
         setTimeout(() => {
-            onClose(); // Ferme le panel
-            logout(); // Redirige automatiquement
-            setFeedback(null);
+            onClose(); // Ferme le menu latéral global
+            logout(); // Le Context (useAuth) s'occupe de détruire la session et rediriger
+            
+            // Nettoyage de l'alerte
+            setMessageTexte("");
+            setMessageType("");
         }, 1500);
     };
 
-    // --- LA CORRECTION EST ICI ---
-    const handleProfile = () => {
-        const myId = user?.id; // ID récupéré depuis AuthContext au lieu de localStorage
-        onClose(); // Ferme le menu aside
+    // Action : Aller sur son propre profil
+    const allerAuProfil = () => {
+        const monId = user?.id; // L'ID vient de notre contexte sécurisé
         
-        if (myId && String(myId) !== "undefined" && String(myId) !== "null") {
-            // On navigue vers l'URL précise de TON profil
-            navigate(`/profil/${myId}`);
+        onClose(); // On ferme d'abord le menu latéral
+        
+        // Si on a bien notre ID, on construit la route précise
+        if (monId && String(monId) !== "undefined" && String(monId) !== "null") {
+            navigate(`/profil/${monId}`);
         } else {
-            // Fallback au cas où l'ID est perdu
+            // Sinon, par sécurité, on va sur l'URL de base du profil
             navigate("/profil");
         }
     };
+    
+    // Action : Aller sur la page des utilisateurs bloqués
+    const allerAuxBloques = () => {
+        onClose();
+        navigate("/blocked");
+    };
+    
+    // Action : Aller aux paramètres de confidentialité
+    const allerALaConfidentialite = () => {
+        onClose();
+        navigate("/privacy");
+    };
 
-    // Si le menu n'est pas ouvert et qu'il n'y a pas de message/modal, on n'affiche rien
-    if (!isOpen && !feedback && !showConfirmLogout) return null;
+
+    // ===============================================
+    // 3. VUE (L'Interface Utilisateur - Composants)
+    // ===============================================
+
+    // S'il n'y a absolument rien à afficher, on ne retourne rien (optimisation)
+    if (isOpen === false && messageTexte === "" && afficherConfirmation === false) {
+        return null;
+    }
 
     return (
         <>
-            {/* Messages de retour */}
-            {feedback && (
+            {/* Pop-up de message conditionnelle (Toast de notification) */}
+            {messageTexte !== "" && (
                 <div className="fixed top-[50px] left-1/2 -translate-x-1/2 z-[100] w-11/12 max-w-sm">
                     <Message>
-                        {feedback.type === 'success' ? (
+                        {messageType === "success" && (
                             <CircleCheck className="text-green-500" />
-                        ) : (
+                        )}
+                        {messageType === "error" && (
                             <TriangleAlert className="stroke-warning" />
                         )}
-                        <span>{feedback.text}</span>
+                        <span>{messageTexte}</span>
                     </Message>
                 </div>
             )}
 
-            {/* Modal personnalisée de confirmation pour remplacer window.confirm */}
-            {showConfirmLogout && (
+            {/* Fenêtre de confirmation (Modal) personnalisée de déconnexion */}
+            {afficherConfirmation === true && (
                 <div className="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4">
                     <div className="bg-surface border border-border p-6 rounded-lg w-full max-w-sm flex flex-col gap-4 shadow-xl">
                         <h3 className="text-text font-bold text-xl text-center">Déconnexion</h3>
@@ -80,37 +133,47 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                             Es-tu sûr de vouloir te déconnecter ?
                         </p>
                         <div className="flex gap-4 w-full mt-4">
-                            <Button variant="secondary" className="flex-1 w-full" onClick={() => setShowConfirmLogout(false)}>
+                            <Button variant="secondary" className="flex-1 w-full" onClick={annulerDeconnexion}>
                                 Annuler
                             </Button>
-                            <Button variant="danger" className="flex-1 w-full" onClick={performLogout}>
+                            <Button variant="danger" className="flex-1 w-full" onClick={confirmerDeconnexion}>
                                 Oui
                             </Button>
                         </div>
                     </div>
                 </div>
             )}
+            
+            {/* Le menu latéral principal 'Aside' */}
             <Aside isOpen={isOpen} onClose={onClose}>
-                {/* Ici on met juste le contenu spécifique au menu */}
+                
+                {/* L'avatar de l'utilisateur connecté */}
                 <Avatar src={user?.avatar} size="xl" />
 
                 <div className="flex flex-col gap-2">
-                    <Button variant="navItem" onClick={handleProfile}>
-                        <UserRound size={20} />Profil
+                    <Button variant="navItem" onClick={allerAuProfil}>
+                        <UserRound size={20} />
+                        <span>Profil</span>
                     </Button>
                 </div>
 
                 <div className="flex flex-col gap-2">
                     <p className="text-xs font-bold text-gray-400 uppercase px-2">Your account</p>
-                    <Button variant="navItem" onClick={handleLogoutClick}>
-                        <LogOut size={20} /> <span>Log out</span>
+                    <Button variant="navItem" onClick={demanderDeconnexion}>
+                        <LogOut size={20} /> 
+                        <span>Log out</span>
                     </Button>
                 </div>
 
                 <div className="flex flex-col gap-2">
                     <p className="text-xs font-bold text-gray-400 uppercase px-2">Who can see your content</p>
-                    <Button variant="navItem" onClick={() => { navigate("/blocked"); onClose(); }}>
-                        <Ban size={20} /> <span>Blocked</span>
+                    <Button variant="navItem" onClick={allerAuxBloques}>
+                        <Ban size={20} /> 
+                        <span>Blocked</span>
+                    </Button>
+                    <Button variant="navItem" onClick={allerALaConfidentialite}>
+                        <Lock size={20} /> 
+                        <span>Privacy</span>
                     </Button>
                 </div>
 

@@ -17,6 +17,7 @@ import ProfileRoute from './routes/profil.tsx'
 import EditProfileRoute from './routes/editProfile.tsx'
 import CommentRoute from './routes/comment.tsx';
 import BlockedRoute from './routes/blocked.tsx';
+import PrivacySettings from './components/PrivacySetting.tsx';
 
 import { useAuth } from './contexts/AuthContext';
 
@@ -75,10 +76,14 @@ const router = createBrowserRouter([
       {
         path: '/blocked',
         element: <BlockedRoute />,
+      },
+      {
+        path: '/privacy',
+        element: <PrivacySettings />,
       }
     ]
   }
-])
+], {basename: import.meta.env.VITE_BASE_PATH });
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

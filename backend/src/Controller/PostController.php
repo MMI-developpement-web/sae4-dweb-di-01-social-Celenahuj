@@ -31,8 +31,8 @@ class PostController extends AbstractController
             return $this->json(['error' => 'Tweet non trouvé'], 404);
         }
 
-        if ($post->isCensored()) {
-            return $this->json(['error' => 'Action impossible sur un contenu censuré'], 403);
+        if ($post->isCensored() || $post->getAuthor()->isBlocked()) {
+            return $this->json(['error' => 'Action impossible sur ce contenu'], 403);
         }
 
         if ($post->getAuthor() !== $user) {
@@ -162,8 +162,8 @@ class PostController extends AbstractController
     #[Route('/api/posts/{id}/comments', name: 'app_post_comments', methods: ['GET'])]
     public function getComments(Post $post, EntityManagerInterface $em): JsonResponse
     {
-        // Bloquer la lecture des commentaires si le post est censuré
-        if ($post->isCensored()) {
+        // Bloquer la lecture des commentaires si le post est censuré ou l'auteur bloqué
+        if ($post->isCensored() || $post->getAuthor()->isBlocked()) {
             return $this->json([], 200); // Retourne un tableau vide
         }
 
@@ -173,13 +173,14 @@ class PostController extends AbstractController
         $data = [];
         foreach ($comments as $comment) {
             $author = $comment->getAuthor();
+            $isBlocked = $author->isBlocked();
             $data[] = [
                 'id' => $comment->getId(),
-                'content' => $comment->isCensored() ? 'Ce message enfreint les conditions d’utilisation de la plateforme' : $comment->getContent(),
+                'content' => $isBlocked ? 'Ce compte a été bloqué pour non respect des conditions d’utilisation' : ($comment->isCensored() ? 'Ce message enfreint les conditions d’utilisation de la plateforme' : $comment->getContent()),
                 'date' => $comment->getDate()->format('c'),
-                'media' => $comment->isCensored() ? null : $comment->getMedia(),
-                'isLiked' => $comment->isCensored() ? false : ($user ? $comment->getLikers()->contains($user) : false),
-                'likesCount' => $comment->isCensored() ? 0 : $comment->getLikers()->count(),
+                'media' => ($isBlocked || $comment->isCensored()) ? null : $comment->getMedia(),
+                'isLiked' => ($isBlocked || $comment->isCensored()) ? false : ($user ? $comment->getLikers()->contains($user) : false),
+                'likesCount' => ($isBlocked || $comment->isCensored()) ? 0 : $comment->getLikers()->count(),
                 'author' => [
                     'id' => $author->getId(),
                     'username' => $author->getUsername(),
@@ -205,11 +206,18 @@ class PostController extends AbstractController
         if ($parentId) {
             $parentPost = $em->getRepository(Post::class)->find($parentId);
             if ($parentPost) {
-                if ($parentPost->isCensored()) {
-                    return $this->json(['error' => 'Impossible de répondre à un contenu censuré'], 403);
+                if ($parentPost->isCensored() || $parentPost->getAuthor()->isBlocked()) {
+                    return $this->json(['error' => 'Impossible de répondre à ce contenu'], 403);
                 }
 
-                $block = $blockRepo->findOneBy(['blocker' => $parentPost->getAuthor(), 'blocked' => $user]);
+                $parentAuthor = $parentPost->getAuthor();
+                
+                // Critère 2 (Read-only) : Bloquer si l'auteur du post parent est en lecture seule
+                if ($parentAuthor->isReadOnly()) {
+                    return $this->json(['error' => 'Cet utilisateur n\'accepte pas les réponses à ses publications.'], 403);
+                }
+
+                $block = $blockRepo->findOneBy(['blocker' => $parentAuthor, 'blocked' => $user]);
                 if ($block) return $this->json(['error' => 'Vous ne pouvez pas répondre à cet utilisateur'], 403);
             }
         }
@@ -249,14 +257,16 @@ class PostController extends AbstractController
 
         $data = [];
         foreach ($posts as $post) {
+            $author = $post->getAuthor();
+            $isBlocked = $author->isBlocked();
             $data[] = [
                 'id' => $post->getId(),
-                'content' => $post->isCensored() ? 'Ce message enfreint les conditions d’utilisation de la plateforme' : $post->getContent(),
+                'content' => $isBlocked ? 'Ce compte a été bloqué pour non respect des conditions d’utilisation' : ($post->isCensored() ? 'Ce message enfreint les conditions d’utilisation de la plateforme' : $post->getContent()),
                 'date' => $post->getDate()->format('c'),
-                'media' => $post->isCensored() ? null : $post->getMedia(),
-                'isLiked' => $post->isCensored() ? false : $post->getLikers()->contains($user),
-                'likesCount' => $post->isCensored() ? 0 : $post->getLikers()->count(),
-                'commentsCount' => $post->isCensored() ? 0 : $post->getComments()->count(),
+                'media' => ($isBlocked || $post->isCensored()) ? null : $post->getMedia(),
+                'isLiked' => ($isBlocked || $post->isCensored()) ? false : $post->getLikers()->contains($user),
+                'likesCount' => ($isBlocked || $post->isCensored()) ? 0 : $post->getLikers()->count(),
+                'commentsCount' => ($isBlocked || $post->isCensored()) ? 0 : $post->getComments()->count(),
                 'author' => [
                     'id' => $post->getAuthor()->getId(),
                     'username' => $post->getAuthor()->getUsername(),
@@ -277,14 +287,15 @@ class PostController extends AbstractController
         $data = [];
         foreach ($posts as $post) {
             $author = $post->getAuthor();
+            $isBlocked = $author->isBlocked();
             $data[] = [
                 'id' => $post->getId(),
-                'content' => $post->isCensored() ? 'Ce message enfreint les conditions d’utilisation de la plateforme' : $post->getContent(),
+                'content' => $isBlocked ? 'Ce compte a été bloqué pour non respect des conditions d’utilisation' : ($post->isCensored() ? 'Ce message enfreint les conditions d’utilisation de la plateforme' : $post->getContent()),
                 'date' => $post->getDate()->format('c'),
-                'media' => $post->isCensored() ? null : $post->getMedia(),
-                'isLiked' => $post->isCensored() ? false : ($user ? $post->getLikers()->contains($user) : false),
-                'likesCount' => $post->isCensored() ? 0 : $post->getLikers()->count(),
-                'commentsCount' => $post->isCensored() ? 0 : $post->getComments()->count(),
+                'media' => ($isBlocked || $post->isCensored()) ? null : $post->getMedia(),
+                'isLiked' => ($isBlocked || $post->isCensored()) ? false : ($user ? $post->getLikers()->contains($user) : false),
+                'likesCount' => ($isBlocked || $post->isCensored()) ? 0 : $post->getLikers()->count(),
+                'commentsCount' => ($isBlocked || $post->isCensored()) ? 0 : $post->getComments()->count(),
                 'author' => [
                     'id' => $author->getId(),
                     'username' => $author->getUsername(),
@@ -360,8 +371,8 @@ class PostController extends AbstractController
         $post = $em->getRepository(Post::class)->find($id);
         if (!$post) return $this->json(['error' => 'Tweet non trouvé'], 404);
 
-        if ($post->isCensored()) {
-            return $this->json(['error' => 'Action impossible sur un contenu censuré'], 403);
+        if ($post->isCensored() || $post->getAuthor()->isBlocked()) {
+            return $this->json(['error' => 'Action impossible sur ce contenu'], 403);
         }
 
         // CRITÈRE US : Un utilisateur bloqué ne peut pas liker
@@ -420,5 +431,35 @@ class PostController extends AbstractController
         ], $blocks);
 
         return $this->json($data);
+    }
+
+    // Dans PostController.php ou UserController.php
+
+    #[Route('/api/me/privacy', name: 'api_get_privacy', methods: ['GET'])]
+    public function getPrivacy(): JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user) return $this->json(['error' => 'Non autorisé'], 401);
+
+        return $this->json([
+            'isReadOnly' => $user->isReadOnly(), // Assure-toi que ces méthodes existent dans ton entité User
+        ]);
+    }
+
+    #[Route('/api/me/privacy', name: 'api_update_privacy', methods: ['PATCH'])]
+    public function updatePrivacy(Request $request, EntityManagerInterface $em): JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user) return $this->json(['error' => 'Non autorisé'], 401);
+
+        $data = json_decode($request->getContent(), true);
+
+        if (isset($data['isReadOnly'])) {
+            $user->setIsReadOnly($data['isReadOnly']);
+        }
+
+        $em->flush();
+
+        return $this->json(['message' => 'Paramètres mis à jour']);
     }
 }

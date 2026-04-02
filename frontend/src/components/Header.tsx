@@ -35,6 +35,7 @@ export default function Header({
   children,
   variant,
   contentAlign,
+  onBack,
   ...props
 }: HeaderProps) {
   return (
@@ -43,7 +44,7 @@ export default function Header({
       <div className={cn(
           contentAlign === "center" ? " left-4" : "static"
       )}>
-        <Button variant="iconNoir" size="noir" onClick={props.onBack}>
+        <Button variant="iconNoir" size="noir" onClick={onBack}>
           <ChevronLeft size={20} />
         </Button>
       </div>

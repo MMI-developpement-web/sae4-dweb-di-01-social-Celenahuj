@@ -14,14 +14,23 @@ const contentVariants = cva(
   }
 );
 
-interface ContentProps extends VariantProps<typeof contentVariants> {
-  children: React.ReactNode;
-  className?: string; // Ajout de la prop className pour plus de flexibilité
+
+// 1. Le Modèle (Les données pures)
+interface ContentData {
+  children: React.ReactNode; // Le contenu affiché (nom, pseudo, etc.)
 }
 
-export default function HeaderProfileContent({ isSticky, children, className }: ContentProps) {
+// 2. La Vue (Le design / style)
+interface ContentStyle extends VariantProps<typeof contentVariants> {}
+
+export default function HeaderProfileContent({ isSticky, children }: ContentData & ContentStyle) {
+  
+  // ===============================================
+  // VUE PURE : Pas de requêtes serveur, juste de l'affichage
+  // ===============================================
+
   return (
-    <div className={cn(contentVariants({ isSticky }), className)}>
+    <div className={cn(contentVariants({ isSticky }))}>
       {children}
     </div>
   );

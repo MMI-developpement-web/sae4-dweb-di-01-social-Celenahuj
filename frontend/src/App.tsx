@@ -17,8 +17,7 @@ import Badge from './components/ui/Badge';
 
 // import { HiArrowDownCircle } from "react-icons/hi2";
 
-// @ts-ignore: no declaration file for 'lucide-react'
-import { ArrowUpFromLine, Icon } from 'lucide-react';
+import { ArrowUpFromLine } from 'lucide-react';
 import { TriangleAlert } from 'lucide-react';
 import { CircleCheck } from 'lucide-react';
 
@@ -146,16 +145,20 @@ function App() {
           <p>Quoi de neuf ??</p>
       </Profil>
 
-      <TweetCard  variant="primary" size="md">
-        <Profil>
+      <TweetCard variant="primary" size="md">
+        <Profil 
+          className="cursor-pointer hover:opacity-80 transition-opacity w-full"
+        >
           <Avatar src="https://picsum.photos/200/300" size="md" shape="circle" />
-          <div className="flex flex-col gap-2">
-              <p>Céléna Hujol</p>
-              <p>2 hours ago</p>
+          <div className="flex flex-col justify-center">
+            <div className="flex flex-row items-center gap-1 flex-wrap">
+              <span className="text-body-sm font-bold m-0 p-0 text-text">Céléna Hujol</span>
+              <span className="text-xs text-text-muted m-0 p-0">@céléna_hujol</span>
+            </div>
+            <time className="text-xs text-text-muted m-0 p-0">2 hours ago</time>
           </div>
-          <p>@céléna_hujol</p>
         </Profil>
-        <p className="text-lg">
+        <p className="text-lg mt-2">
           Quoi de neuf ??
         </p>
         <div className="flex justify-between">

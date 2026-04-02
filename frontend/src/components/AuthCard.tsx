@@ -31,7 +31,6 @@ export default function AuthCard({
   children,
   variant,
   size,
-  className,
   ...props
 }: AuthCardProps) {
   return (

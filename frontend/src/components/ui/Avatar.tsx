@@ -1,7 +1,12 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "../../lib/utils";
-import defaultProfil from "../../assets/profil.jpg";
 
+// L'image par défaut (si l'utilisateur n'a pas mis de photo)
+import imageParDefaut from "../../assets/profil.jpg";
+
+// ===============================================
+// CONFIGURATION DU DESIGN (Tailwind + CVA)
+// ===============================================
 const AvatarVariants = cva(
   "inline-block object-cover",
   {
@@ -25,39 +30,69 @@ const AvatarVariants = cva(
   }
 );
 
-interface AvatarProps extends VariantProps<typeof AvatarVariants> {
-  src?: string | null;
-  alt?: string;
+// ===============================================
+// INTERFACES (Séparation stricte Données / Design)
+// ===============================================
+
+// 1. Le Modèle (Les données pures)
+interface AvatarData {
+  src?: string | null; 
+  alt?: string;       
 }
 
-export default function Avatar({ src, alt = "Avatar", size, shape, ...props }: AvatarProps) {
-    const getFinalSrc = (avatarValue: string | null | undefined) => {
-        if (!avatarValue) return defaultProfil;
+// 2. La Vue (Le design / style)
+interface AvatarStyle extends VariantProps<typeof AvatarVariants> {}
+
+// On rassemble les deux pour le composant
+export default function Avatar({ src, alt, size, shape, className, ...props }: AvatarData & AvatarStyle & Omit<React.ImgHTMLAttributes<HTMLImageElement>, "src" | "alt">) {
+
+    let texteAlternatif = alt;
+    if (texteAlternatif === undefined) {
+        texteAlternatif = "Photo de profil";
+    }
+
+    const URL_SERVEUR = import.meta.env.VITE_API_URL.replace('/api', '');
+
+    // Fonction utilitaire pour formater le bon lien de l'image
+    function determinerLaSourceImage(valeurImage: string | null | undefined): string {
         
-        if (avatarValue.startsWith("http") || avatarValue.startsWith("data:") || avatarValue.startsWith("blob:") || avatarValue.startsWith("/")) {
-            return avatarValue;
+        // Cas 1 : Aucune image fournie
+        if (!valeurImage) {
+            return imageParDefaut;
+        }
+        
+        // Cas 2 : Lien valide (http, encodé, ou absolu)
+        if (valeurImage.startsWith("http") || valeurImage.startsWith("data:") || valeurImage.startsWith("blob:") || valeurImage.startsWith("/")) {
+            return valeurImage;
         }
 
-        // Si le nom du fichier ressemble à un ID unique généré par uniqid() de PHP (13 caractères)
-        // suivi d'une extension (.jpg, .png, etc.), alors il provient sûrement des uploads
-        if (/^[a-f0-9]{13}\.[a-zA-Z]{3,4}$/i.test(avatarValue)) {
-             return `${import.meta.env.VITE_API_URL.replace('/api', '')}/uploads/${avatarValue}`;
+        // Cas 3 : Fichier backend Symfony (ex: "65a6f8b9e1234.jpg")
+        // Regex : 13 caractères hexadécimaux suivis d'une extension
+        const ressembleAFichierSymfony = /^[a-f0-9]{13}\.[a-zA-Z]{3,4}$/i.test(valeurImage);
+        if (ressembleAFichierSymfony) {
+             return `${URL_SERVEUR}/uploads/${valeurImage}`;
         }
 
+        // Cas 4 : Image locale dans `assets`
         try {
-            return new URL(`../../assets/${avatarValue}`, import.meta.url).href;
-        } catch (e) {
-            return defaultProfil;
+            return new URL(`../../assets/${valeurImage}`, import.meta.url).href;
+        } catch {
+            return imageParDefaut; // Sécurité anti-crash
         }
-    };
+    }
 
-    const finalSrc = getFinalSrc(src);
+    // On exécute notre mini-contrôleur
+    const imageAffichee = determinerLaSourceImage(src);
+
+    // ===============================================
+    // VUE (L'Affichage Final)
+    // ===============================================
 
     return (
         <img 
-            src={finalSrc} 
-            alt={alt} 
-            className={cn(AvatarVariants({ size, shape }))}
+            src={imageAffichee} 
+            alt={texteAlternatif} 
+            className={cn(AvatarVariants({ size, shape }), className)} 
             {...props}
         />
     );

@@ -1,97 +1,145 @@
 import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { CircleCheck, TriangleAlert } from "lucide-react";
+
 import AuthCard from "../components/AuthCard";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import Message from "./Message";
-import { CircleCheck, TriangleAlert } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
 
 export default function SignIn() {
+    // ===============================================
+    // OUTILS (Navigation, variable d'environnement)
+    // ===============================================
     const navigate = useNavigate();
-    const [name, setName] = useState("");
+    const API_URL = import.meta.env.VITE_API_URL;
+
+    // ===============================================
+    // 1. MODÈLE (Les données conservées par la page)
+    // ===============================================
+    const [nom, setNom] = useState("");
     const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
+    const [motDePasse, setMotDePasse] = useState("");
     
-    // État pour gérer les messages flottants
-    const [feedback, setFeedback] = useState<{type: 'success' | 'error', text: string} | null>(null);
+    // États simples pour remplacer l'objet complexe 'feedback'
+    const [messageTexte, setMessageTexte] = useState("");
+    const [messageType, setMessageType] = useState("");
 
-    // Vérifications en temps réel
-    const hasLength = password.length >= 8;
-    const hasUpper = /[A-Z]/.test(password);
-    const hasLower = /[a-z]/.test(password);
-    const hasNumber = /[0-9]/.test(password);
-    const hasSpecial = /[^A-Za-z0-9]/.test(password);
+    // --- Logique métier dérivée du Modèle ---
+    // Variables simples (booléennes) pour les vérifications
+    const aBonneLongueur = motDePasse.length >= 8;
+    const aMajuscule = /[A-Z]/.test(motDePasse);
+    const aMinuscule = /[a-z]/.test(motDePasse);
+    const aChiffre = /[0-9]/.test(motDePasse);
+    const aSpecial = /[^A-Za-z0-9]/.test(motDePasse);
 
-
-    const isPasswordValid = hasLength && hasUpper && hasLower && hasNumber && hasSpecial;
+    const motDePasseValide = aBonneLongueur && aMajuscule && aMinuscule && aChiffre && aSpecial;
     
-    const isFormValid = name && email && isPasswordValid;
+    // Un simple 'if' pour valider le formulaire
+    let formulaireValide = false;
+    if (nom !== "" && email !== "" && motDePasseValide === true) {
+        formulaireValide = true;
+    }
 
-    // Calcul de la force (score de 0 à 5)
-    const strengthScore = [hasLength, hasUpper, hasLower, hasNumber, hasSpecial].filter(Boolean).length;
+    // Calcul de la jauge de force du mot de passe
+    let scoreForce = 0;
+    if (aBonneLongueur) scoreForce++;
+    if (aMajuscule) scoreForce++;
+    if (aMinuscule) scoreForce++;
+    if (aChiffre) scoreForce++;
+    if (aSpecial) scoreForce++;
     
-    let strengthText = "";
-    let strengthColor = "bg-gray-300";
-    let textColor = "text-gray-500";
+    let texteForce = "";
+    let couleurBarre = "bg-gray-300";
+    let couleurTexte = "text-gray-500";
     
-    if (password.length > 0) {
-        if (strengthScore <= 2) {
-            strengthText = "Faible";
-            strengthColor = "bg-red-500";
-            textColor = "text-red-500";
-        } else if (strengthScore <= 4) {
-            strengthText = "Moitié";
-            strengthColor = "bg-[#F3B053]"; // La couleur orange/jaune de la capture
-            textColor = "text-[#F3B053]";
+    if (motDePasse.length > 0) {
+        if (scoreForce <= 2) {
+            texteForce = "Faible";
+            couleurBarre = "bg-red-500";
+            couleurTexte = "text-red-500";
+        } else if (scoreForce <= 4) {
+            texteForce = "Moyen";
+            couleurBarre = "bg-[#F3B053]";
+            couleurTexte = "text-[#F3B053]";
         } else {
-            strengthText = "Fort";
-            strengthColor = "bg-green-500";
-            textColor = "text-green-500";
+            texteForce = "Fort";
+            couleurBarre = "bg-green-500";
+            couleurTexte = "text-green-500";
         }
     }
 
-    const handleSignUp = async () => {
-        setFeedback(null); // On efface l'ancien message
-        // Envoi des données vers le backend
+
+    // ===============================================
+    // 2. CONTRÔLEUR (La logique explicite et les actions)
+    // ===============================================
+    
+    const afficherAlerte = (texte: string, type: string) => {
+        setMessageTexte(texte);
+        setMessageType(type);
+    };
+
+    // Action : Créer un nouveau compte utilisateur
+    const actionCreerCompte = async () => {
+        // 1. On nettoie l'éventuelle alerte précédente
+        setMessageTexte("");
+        setMessageType("");
+
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/register`, {
+            // 2. On lance la requête
+            const reponse = await fetch(`${API_URL}/register`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    name: name,
+                    name: nom,
                     email: email,
-                    password: password
+                    password: motDePasse
                 }),
             });
 
-            if (response.ok) {
-                setFeedback({ type: 'success', text: "Compte créé avec succès ! Tu vas être redirigé." });
-                setTimeout(() => navigate("/login"), 1500); // Redirection vers le login
-            } else {
-                const errorData = await response.json();
-                setFeedback({ type: 'error', text: `Erreur : ${errorData.error || 'Erreur lors de la création'}` });
+            // 3. Gestion claire des erreurs serveur (le backend renvoie une erreur)
+            if (reponse.ok === false) {
+                const donnees = await reponse.json();
+                afficherAlerte(`Erreur : ${donnees.error || 'Impossible de créer le compte'}`, "error");
+                return; // On arrête l'exécution ici
             }
-        } catch (error) {
-            console.error("Erreur réseau :", error);
-            setFeedback({ type: 'error', text: "Erreur de connexion au serveur !" });
+
+            // 4. Si c'est un succès :
+            afficherAlerte("Compte créé avec succès ! Tu vas être redirigé.", "success");
+            
+            // On attend 1,5 seconde puis on navigue vers l'écran de "Login"
+            setTimeout(() => {
+                navigate("/login");
+            }, 1500);
+
+        } catch (erreur) {
+            // S'il n'y a pas du tout de réseau, on tombe ici
+            console.error("Erreur réseau :", erreur);
+            afficherAlerte("Erreur de connexion au serveur !", "error");
         }
     };
+
+
+    // ===============================================
+    // 3. VUE (L'Interface Utilisateur - Le rendu HTML)
+    // ===============================================
 
     return (
         <main className="min-h-screen flex items-center justify-center px-mobile-x pt-mobile-top pb-mobile-bottom sm:p-6 bg-bg relative">
             
-            {/* Affichage des messages de retour en haut de l'écran */}
-            {feedback && (
+            {/* Pop-up de message conditionnelle (Toast de notification) */}
+            {messageTexte !== "" && (
                 <div className="fixed top-[50px] left-1/2 -translate-x-1/2 z-[100] w-11/12 max-w-sm">
                     <Message>
-                        {feedback.type === 'success' ? (
+                        {messageType === "success" && (
                             <CircleCheck className="text-green-500" />
-                        ) : (
+                        )}
+                        {messageType === "error" && (
                             <TriangleAlert className="stroke-warning" />
                         )}
-                        <span>{feedback.text}</span>
+                        <span>{messageTexte}</span>
                     </Message>
                 </div>
             )}
@@ -104,8 +152,8 @@ export default function SignIn() {
                         variant="primary" 
                         size="lg" 
                         placeholder="Name" 
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
+                        value={nom}
+                        onChange={(evenement) => setNom(evenement.target.value)}
                     />
                     <Input 
                         variant="primary" 
@@ -113,38 +161,39 @@ export default function SignIn() {
                         type="email" 
                         placeholder="Email" 
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(evenement) => setEmail(evenement.target.value)}
                     />
                     <Input 
                         variant="primary" 
                         size="lg" 
                         type="password" 
                         placeholder="Password" 
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        value={motDePasse}
+                        onChange={(evenement) => setMotDePasse(evenement.target.value)}
                     />
 
-                    {/* Indicateur de force en temps réel */}
-                    {password.length > 0 && (
+                    {/* Indicateur de force du mot de passe en temps réel */}
+                    {motDePasse.length > 0 && (
                         <div className="flex flex-col gap-2 p-3 bg-surface rounded-md border border-border">
                             <div className="flex justify-between items-center text-body-sm font-medium">
                                 <span className="text-text-muted">Force du mot de passe</span>
-                                <span className={textColor}>{strengthText}</span>
+                                <span className={couleurTexte}>{texteForce}</span>
                             </div>
                             
-                            {/* Les 3 barres séparées (design de la capture) */}
+                            {/* Les 3 barres pour illustrer la force (design de la capture) */}
                             <div className="flex gap-2 w-full mt-1">
-                                <div className={`h-2 flex-1 rounded-full transition-colors duration-300 ${strengthScore >= 1 ? strengthColor : 'bg-gray-300'}`}></div>
-                                <div className={`h-2 flex-1 rounded-full transition-colors duration-300 ${strengthScore >= 3 ? strengthColor : 'bg-gray-300'}`}></div>
-                                <div className={`h-2 flex-1 rounded-full transition-colors duration-300 ${strengthScore >= 5 ? strengthColor : 'bg-gray-300'}`}></div>
+                                <div className={`h-2 flex-1 rounded-full transition-colors duration-300 ${scoreForce >= 1 ? couleurBarre : 'bg-gray-300'}`}></div>
+                                <div className={`h-2 flex-1 rounded-full transition-colors duration-300 ${scoreForce >= 3 ? couleurBarre : 'bg-gray-300'}`}></div>
+                                <div className={`h-2 flex-1 rounded-full transition-colors duration-300 ${scoreForce >= 5 ? couleurBarre : 'bg-gray-300'}`}></div>
                             </div>
                         </div>
                     )}
                 </div>
 
                 <Button 
-                    variant={isFormValid ? "gradient" : "gradientDisabled"} size="lg"
-                    onClick={handleSignUp}
+                    variant={formulaireValide ? "gradient" : "gradientDisabled"} 
+                    size="lg"
+                    onClick={actionCreerCompte}
                 >
                     Sign in
                 </Button>
