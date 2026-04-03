@@ -75,6 +75,12 @@ export default function CommentRoute() {
     const afficherAlerte = (texte: string, type: string) => {
         setTexteMessage(texte);
         setTypeMessage(type);
+        
+        // Fait disparaître le message d'erreur ou de succès après 3 secondes
+        setTimeout(() => {
+            setTexteMessage("");
+            setTypeMessage("");
+        }, 3000);
     };
 
     // Action : L'utilisateur sélectionne un fichier

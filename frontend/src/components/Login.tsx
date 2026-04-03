@@ -40,10 +40,16 @@ export default function Login() {
     // 2. CONTRÔLEUR (La logique et les actions)
     // ===============================================
 
-    // Action : Afficher un message de retour clair
+    // Action : Afficher un message de retour clair qui disparaît au bout d'un moment
     const afficherAlerte = (texte: string, type: string) => {
         setMessageTexte(texte);
         setMessageType(type);
+        
+        // Fait disparaître le message après 3 secondes
+        setTimeout(() => {
+            setMessageTexte("");
+            setMessageType("");
+        }, 3000);
     };
 
     // Action : Tenter de connecter l'utilisateur
@@ -70,10 +76,6 @@ export default function Login() {
                 const donneesErreur = await reponse.json().catch(() => null);
                 const message = donneesErreur?.error || "Email ou mot de passe incorrect !";
                 afficherAlerte(message, "error");
-                setTimeout(() => {
-                    setMessageTexte("");
-                    setMessageType("");
-                }, 3000);
                 return; // On arrête là
             }
 

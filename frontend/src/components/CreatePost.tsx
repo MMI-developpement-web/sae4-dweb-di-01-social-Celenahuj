@@ -89,6 +89,12 @@ export default function CreatePostRoute() {
     const afficherAlerte = (texte: string, type: string) => {
         setTexteMessage(texte);
         setTypeMessage(type);
+        
+        // Disparition automatique
+        setTimeout(() => {
+            setTexteMessage("");
+            setTypeMessage("");
+        }, 3000);
     };
 
     // Action : L'utilisateur a choisi un fichier sur son téléphone/PC
@@ -165,12 +171,7 @@ export default function CreatePostRoute() {
             if (reponse.ok === false) {
                 const donneesErreur = await reponse.json();
                 afficherAlerte(donneesErreur.error || "Le serveur a refusé le message.", "error");
-                
-                setTimeout(() => {
-                    setTexteMessage("");
-                    setTypeMessage("");
-                }, 3000);
-                
+
                 setEnvoiEnCours(false);
                 return; // On arrête là !
             }

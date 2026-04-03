@@ -57,6 +57,12 @@ export default function EditProfile() {
     const afficherAlerte = (texte: string, type: string) => {
         setMessageTexte(texte);
         setMessageType(type);
+        
+        // Disparition automatique au bout de 3 secondes
+        setTimeout(() => {
+            setMessageTexte("");
+            setMessageType("");
+        }, 3000);
     };
 
     // Action Initiale : Quand la page s'ouvre, on télécharge les infos actuelles du profil

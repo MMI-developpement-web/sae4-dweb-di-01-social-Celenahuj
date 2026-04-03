@@ -77,6 +77,10 @@ export default function SignIn() {
     const afficherAlerte = (texte: string, type: string) => {
         setMessageTexte(texte);
         setMessageType(type);
+        setTimeout(() => {
+            setMessageTexte("");
+            setMessageType("");
+        }, 3000);
     };
 
     // Action : Créer un nouveau compte utilisateur

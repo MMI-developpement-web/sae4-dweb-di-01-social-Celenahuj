@@ -40,6 +40,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     const afficherToast = (texte: string, type: string) => {
         setMessageTexte(texte);
         setMessageType(type);
+
+        // Fait disparaître le message après 3 secondes
+        setTimeout(() => {
+            setMessageTexte("");
+            setMessageType("");
+        }, 3000);
     };
 
     // Action : On clique sur le bouton de déconnexion (Ouvre la boîte de dialogue)
