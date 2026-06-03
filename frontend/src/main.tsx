@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { createBrowserRouter, Outlet, RouterProvider, Navigate } from 'react-router-dom'
 import './index.css'
 
 // --- 1. Import de tes deux nouveaux Stores ---
