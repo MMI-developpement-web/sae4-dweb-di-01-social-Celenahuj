@@ -423,7 +423,7 @@ export default function ProfileContent() {
                         <figure className="h-[250px] sm:h-[320px] w-full overflow-hidden bg-surface/10 relative m-0">
                             <Avatar
                                 size="xxl"
-                                src={user.avatar || "/assets/default-avatar.png"}
+                                src={user?.banderole || user?.banniere || user?.banner || user?.avatar}
                                 shape="square"
                             />
                             <div className="absolute inset-0 bg-gradient-to-b from-black/60 to-transparent h-32" aria-hidden="true" />
